@@ -11,6 +11,7 @@ import {
   AnimatePresence
 } from "framer-motion"
 import Image from "next/image"
+import Link from "next/link"
 
 interface HeroCursorLensProps {
   parallaxStrength?: number
@@ -454,11 +455,11 @@ export const HeroSection = ({
             >
 
               <Image
-                src="/assets/robotic/hero/robotic-natural-cutout.webp?v=7"
+                src="/assets/robotic/hero/robotic-natural-cutout.webp"
                 alt="Robotic ofc portrait"
                 width={2400}
                 height={2700}
-                unoptimized
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 1200px"
                 priority
                 className="robotic-portrait-image"
                 draggable={false}
@@ -530,8 +531,8 @@ export const HeroSection = ({
           `}</style>
           
           {/* Inner white button - untouched styling */}
-          <button
-            onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+          <Link
+            href="/contact"
             className="relative z-10 overflow-hidden h-[38px] md:h-[45px] px-4 md:px-6 flex items-center justify-center rounded-full bg-white/85 backdrop-blur-md shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.8)] transition-all duration-300 group-hover:bg-white/95 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.6)] cursor-pointer"
           >
             <div
@@ -557,7 +558,7 @@ export const HeroSection = ({
                 }}
               />
             </div>
-          </button>
+          </Link>
         </div>
         <button
           onClick={() => document.getElementById("music")?.scrollIntoView({ behavior: "smooth" })}

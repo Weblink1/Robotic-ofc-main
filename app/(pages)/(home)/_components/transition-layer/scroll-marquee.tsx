@@ -3,7 +3,7 @@ import { forwardRef } from "react"
 
 /**
  * Two rows of large text scrolling in opposite horizontal directions
- * behind the minimized hero card — exactly like the Lando Norris site.
+ * behind the minimized hero card for Robotic ofc.
  *
  * Row 1 → scrolls left: city names
  * Row 2 → scrolls right: brand phrases

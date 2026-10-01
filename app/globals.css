@@ -1082,63 +1082,62 @@ nextjs-hud,
 
 .tour-main-title {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0;
-  line-height: 1;
-}
-
-/* "UPCOMING" â€” italic, tracked out, like the reference */
-.tour-title-upcoming {
-  font-family: var(--font-sans), sans-serif;
-  font-size: clamp(16px, 3vw, 24px);
-  font-weight: 800;
-  font-style: italic;
-  letter-spacing: 0.55em;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  line-height: 1.1;
+  font-family: var(--font-brier), serif;
+  font-size: clamp(34px, 6.5vw, 68px);
+  font-weight: 900;
   text-transform: uppercase;
-  background: linear-gradient(
-    90deg,
-    #c0c0c0 0%,
-    #e8e8e8 20%,
-    #ffffff 40%,
-    #d4d4d4 60%,
-    #b0b0b0 80%,
-    #c8c8c8 100%
-  );
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: silverShimmer 5s ease-in-out infinite;
-  margin-bottom: 0;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
 }
 
-/* "EVENTS" â€” massive bold italic like the reference screenshot */
+/* "UPCOMING" — Crisp solid white bold with ambient platinum back-glow and clean drop shadow */
+.tour-title-upcoming {
+  font-family: var(--font-brier), serif;
+  font-size: inherit;
+  font-weight: 900;
+  font-style: normal;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.95),
+    0 0 25px rgba(255, 255, 255, 0.75),
+    0 0 50px rgba(200, 220, 255, 0.4);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+  margin-bottom: 0;
+  line-height: inherit;
+}
+
+/* "EVENTS" — High-contrast liquid chrome silver gradient with luminous halo */
 .tour-title-events {
   font-family: var(--font-brier), serif;
-  font-size: clamp(64px, 14vw, 140px);
+  font-size: inherit;
   font-weight: 900;
-  font-style: italic;
+  font-style: normal;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  /* Bold silver metallic gradient */
+  letter-spacing: inherit;
+  /* Vivid liquid-silver metallic gradient */
   background: linear-gradient(
     180deg,
     #ffffff 0%,
-    #e8e8e8 20%,
-    #c0c0c0 40%,
-    #ffffff 55%,
-    #d0d0d0 70%,
-    #a0a0a0 90%,
-    #c8c8c8 100%
+    #f1f5f9 22%,
+    #cbd5e1 45%,
+    #94a3b8 72%,
+    #64748b 100%
   );
   background-size: 100% 200%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: silverVerticalShimmer 6s ease-in-out infinite;
-  filter: drop-shadow(0 4px 16px rgba(255,255,255,0.1));
-  line-height: 1;
+  animation: silverVerticalShimmer 5s ease-in-out infinite;
+  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.55)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+  line-height: inherit;
 }
 
 @keyframes silverVerticalShimmer {
@@ -1147,11 +1146,14 @@ nextjs-hud,
 }
 
 .tour-title-divider {
-  width: 100px;
+  width: 90px;
   height: 2px;
-  margin: 32px auto 0;
-  background: linear-gradient(90deg, transparent, rgba(220,220,220,0.5), transparent);
+  margin: 24px auto 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
 }
+
+
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TOUR CARDS LIST
@@ -2263,5 +2265,216 @@ nextjs-hud,
   will-change: box-shadow, border-color;
   transition: box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes vinylSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-vinyl-spin {
+  animation: vinylSpin 3.5s linear infinite;
+}
+
+/* Metallic Background Sheen & Ambient Animations */
+@keyframes metallicSheenSweep {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.55;
+  }
+  80% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateX(250%) skewX(-25deg);
+    opacity: 0;
+  }
+}
+
+.animate-metallic-sheen {
+  animation: metallicSheenSweep 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes metallicDriftOrb1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(45px, -35px) scale(1.12);
+    opacity: 0.55;
+  }
+}
+
+@keyframes metallicDriftOrb2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50px, 40px) scale(1.08);
+    opacity: 0.5;
+  }
+}
+
+.animate-metallic-orb-1 {
+  animation: metallicDriftOrb1 11s ease-in-out infinite;
+}
+
+.animate-metallic-orb-2 {
+  animation: metallicDriftOrb2 14s ease-in-out infinite;
+}
+
+/* Chrome metallic arrow styling */
+.chrome-arrow-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(200,205,215,0.1) 50%, rgba(255,255,255,0.05) 100%);
+  border: 1.5px solid rgba(255,255,255,0.38);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chrome-arrow-btn:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%);
+  border-color: #ffffff;
+  color: #0c0d10 !important;
+  transform: scale(1.14);
+  box-shadow: 
+    0 12px 35px rgba(0,0,0,0.5),
+    0 0 35px rgba(255, 255, 255, 0.75),
+    0 0 55px rgba(255, 255, 255, 0.35);
+}
+
+.chrome-arrow-btn:active {
+  transform: scale(0.95);
+}
+
+/* Luminous Metallic Text Gradient */
+.metallic-text-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 35%, #94a3b8 70%, #64748b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.35));
+}
+
+/* Metallic Core Spotlight Breathing Animation */
+@keyframes metallicCorePulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.18);
+    opacity: 1;
+  }
+}
+
+.animate-metallic-core-pulse {
+  animation: metallicCorePulse 6.5s ease-in-out infinite;
+}
+
+/* Moving Stage Spotlight Sweep */
+@keyframes metallicSpotlightPan {
+  0% {
+    transform: translate(-60%, -55%) rotate(0deg);
+  }
+  50% {
+    transform: translate(-40%, -45%) rotate(12deg);
+  }
+  100% {
+    transform: translate(-60%, -55%) rotate(0deg);
+  }
+}
+
+.animate-metallic-spotlight-pan {
+  animation: metallicSpotlightPan 12s ease-in-out infinite;
+}
+
+/* View All Releases CTA Button (matches Home Page CTA look) */
+@keyframes releaseBtnGlassFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.music-view-all-frame {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.music-view-all-frame:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 255, 255, 0.25);
+}
+
+.music-view-all-border {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(148, 163, 184, 0.5) 25%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(203, 213, 225, 0.7) 75%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  background-size: 200% 200%;
+  animation: releaseBtnGlassFlow 4s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  pointer-events: none;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.music-view-all-frame:hover .music-view-all-border {
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(226, 232, 240, 0.9) 25%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(203, 213, 225, 0.95) 75%,
+    #ffffff 100%
+  );
+  background-size: 200% 200%;
+  animation: releaseBtnGlassFlow 2s linear infinite;
+}
+
+/* Solid, Punchy & Bolder Latest Releases Title */
+.latest-releases-title {
+  letter-spacing: 0.03em;
+  font-weight: 900;
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.9),
+    0 0 25px rgba(255, 255, 255, 0.5),
+    0 0 50px rgba(200, 220, 255, 0.3);
 }
 

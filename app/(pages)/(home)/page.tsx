@@ -17,6 +17,8 @@ export default function HomePage() {
   const marqueeContainerRef = useRef<HTMLDivElement>(null)
   const signatureContainerRef = useRef<HTMLDivElement>(null)
   const signatureImageRef = useRef<HTMLImageElement>(null)
+  const topLeftImageRef = useRef<HTMLDivElement>(null)
+  const bottomRightImageRef = useRef<HTMLDivElement>(null)
 
   useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger)
@@ -151,8 +153,37 @@ export default function HomePage() {
     )
 
     // ┌──────────────────────────────────────────────────────────────────────┐
-    // │  PHASE 5 — Fade everything out for tour section  (92% → 100%)     │
+    // │  PHASE 4 — Corner Robotic images slide & fade in (6% → 18%)          │
     // └──────────────────────────────────────────────────────────────────────┘
+    if (topLeftImageRef.current) {
+      tl.fromTo(
+        topLeftImageRef.current,
+        { opacity: 0, x: -20, y: -15, scale: 0.95 },
+        { opacity: 0.84, x: 0, y: 0, scale: 1, duration: 0.12, ease: "power2.out" },
+        0.06
+      )
+    }
+
+    if (bottomRightImageRef.current) {
+      tl.fromTo(
+        bottomRightImageRef.current,
+        { opacity: 0, x: 20, y: 15, scale: 0.95 },
+        { opacity: 0.84, x: 0, y: 0, scale: 1, duration: 0.12, ease: "power2.out" },
+        0.06
+      )
+    }
+
+    // ┌──────────────────────────────────────────────────────────────────────┐
+    // │  PHASE 5 — Fade everything out for tour section  (92% → 100%)        │
+    // └──────────────────────────────────────────────────────────────────────┘
+    const fadeOutTargets = [
+      marqueeContainerRef.current,
+      signatureContainerRef.current,
+      topLeftImageRef.current,
+      bottomRightImageRef.current,
+    ].filter(Boolean)
+
+    tl.to(fadeOutTargets, { opacity: 0, duration: 0.08, ease: "none" }, 0.92)
 
     // ── Attach ScrollTrigger to the master timeline ──
     ScrollTrigger.create({
@@ -168,11 +199,11 @@ export default function HomePage() {
 
   return (
     <ReactLenis root options={{
-      lerp: 0.04,
+      lerp: 0.08,
       smoothWheel: true,
-      wheelMultiplier: 0.75,
-      orientation: "vertical",
-      gestureOrientation: "vertical",
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.8,
+      syncTouch: false,
     }}>
       <div className="relative w-full bg-black min-h-screen">
         {/* ═══════════ PINNED SCROLL ZONE ═══════════
@@ -214,6 +245,38 @@ export default function HomePage() {
               <HeroSection />
             </div>
 
+            {/* Corner 1: Top-Left Robotic Image (robotic home 1) */}
+            <div
+              ref={topLeftImageRef}
+              className="absolute top-6 sm:top-8 md:top-10 lg:top-12 left-5 sm:left-8 md:left-14 lg:left-20 xl:left-24 z-[15] pointer-events-none"
+              style={{ opacity: 0 }}
+            >
+              <div className="relative w-[85px] sm:w-[110px] md:w-[140px] lg:w-[165px] xl:w-[185px] [mask-image:linear-gradient(to_bottom,black_65%,rgba(0,0,0,0.85)_82%,transparent_100%)]">
+                <img
+                  src="/assets/robotic/hero/robotic-home-1-cropped.png"
+                  alt="Robotic OFC Top Left"
+                  className="w-full h-auto object-contain filter drop-shadow-[0_0_25px_rgba(216,180,254,0.18)] drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]"
+                  style={{ willChange: "transform, opacity" }}
+                />
+              </div>
+            </div>
+
+            {/* Corner 2: Bottom-Right Robotic Image (robotic home 2) */}
+            <div
+              ref={bottomRightImageRef}
+              className="absolute bottom-3 sm:bottom-4 md:bottom-6 lg:bottom-8 right-4 sm:right-7 md:right-12 lg:right-16 xl:right-20 z-[15] pointer-events-none"
+              style={{ opacity: 0 }}
+            >
+              <div className="relative w-[85px] sm:w-[110px] md:w-[140px] lg:w-[165px] xl:w-[185px] [mask-image:linear-gradient(to_bottom,black_65%,rgba(0,0,0,0.85)_82%,transparent_100%)]">
+                <img
+                  src="/assets/robotic/hero/robotic-home-2-cropped.png"
+                  alt="Robotic OFC Bottom Right"
+                  className="w-full h-auto object-contain filter drop-shadow-[0_0_25px_rgba(216,180,254,0.16)] drop-shadow-[0_0_35px_rgba(0,0,0,0.9)]"
+                  style={{ willChange: "transform, opacity" }}
+                />
+              </div>
+            </div>
+
             {/* Layer 3: Signature Image overlay (drawn on top, z-20) */}
             <div
               ref={signatureContainerRef}
@@ -234,14 +297,14 @@ export default function HomePage() {
         </section>
 
         {/* ═══════════ REGULAR FLOW CONTENT ═══════════ */}
-        <div className="relative z-20 w-full bg-[#0c0c0c] border-t border-white/5 shadow-[0_-15px_40px_rgba(0,0,0,0.8)]">
+        <div className="relative z-20 w-full bg-[#050505]">
           {/* Page 2: Tour & Events */}
-          <div id="tour">
+          <div id="tour" className="relative">
             <TourSection />
           </div>
 
           {/* Page 3: Music releases */}
-          <div id="music">
+          <div id="music" className="relative">
             <MusicSection />
           </div>
         </div>

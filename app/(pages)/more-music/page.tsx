@@ -100,7 +100,7 @@ export default function MoreMusicPage() {
   }, { scope: containerRef })
 
   return (
-    <ReactLenis root options={{ lerp: 0.05, smoothWheel: true }}>
+    <ReactLenis root options={{ lerp: 0.08, smoothWheel: true, touchMultiplier: 1.8, syncTouch: false }}>
       <section 
         ref={containerRef} 
         className="relative min-h-screen w-full bg-[#060606] pt-32 pb-24 overflow-hidden z-20"

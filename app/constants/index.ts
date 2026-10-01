@@ -6,46 +6,51 @@ export const menuList = [
   },
   {
     id: 2,
-    label: "Music",
-    pathname: "#music"
+    label: "Tour",
+    pathname: "/events"
   },
   {
     id: 3,
-    label: "Management",
-    pathname: "#management"
+    label: "Music",
+    pathname: "/more-music"
   },
   {
     id: 4,
-    label: "Book Robotic",
-    pathname: "#book-robotic"
+    label: "Gallery",
+    pathname: "/gallery"
   },
   {
     id: 5,
-    label: "Press Kit",
-    pathname: "#press-kit"
+    label: "Contact & Book",
+    pathname: "/contact"
   }
 ]
 
 export const socialMediaList = [
   {
     id: 1,
-    label: "TikTok",
-    pathname: "https://www.tiktok.com/@landonorris"
+    label: "Instagram",
+    pathname: "https://www.instagram.com/robotic_ofc"
   },
   {
     id: 2,
-    label: "Instagram",
-    pathname: "https://www.instagram.com/lando"
+    label: "TikTok",
+    pathname: "https://www.tiktok.com/@robotic_ofc"
   },
   {
     id: 3,
     label: "YouTube",
-    pathname: "https://www.youtube.com/landonorris04"
+    pathname: "https://www.youtube.com/@robotic_ofc"
   },
   {
     id: 4,
-    label: "Twitch",
-    pathname: "https://www.twitch.tv/landonorris"
+    label: "SoundCloud",
+    pathname: "https://soundcloud.com/robotic_ofc"
+  },
+  {
+    id: 5,
+    label: "Spotify",
+    pathname: "https://open.spotify.com/artist/robotic_ofc"
   },
 ]
 

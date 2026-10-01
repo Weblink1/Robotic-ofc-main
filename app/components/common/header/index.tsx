@@ -7,11 +7,11 @@ import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 
 const NAV_LOGOS = [
-  { label: "Home", tooltip: "Main", src: "/assets/robotic/logo/Home-Logo.png", w: 200, h: 52, left: 129, textWidth: 237, anchor: "home" },
-  { label: "Tour", tooltip: "Upcoming Shows", src: "/assets/robotic/logo/Tour-Logo.png", w: 200, h: 52, left: 129, textWidth: 204, anchor: "tour" },
-  { label: "Music", tooltip: "New Releases", src: "/assets/robotic/logo/Music-Logo-New.png", w: 200, h: 52, left: 154, textWidth: 204, anchor: "music" },
-  { label: "Shop", tooltip: "Shirts & Hoodies", src: "/assets/robotic/logo/Shop-logo.png", w: 200, h: 52, left: 142, textWidth: 209, anchor: "music" },
-  { label: "Contact", tooltip: "Management", src: "/assets/robotic/logo/Contact-logo.png", w: 200, h: 52, left: 63, textWidth: 376, anchor: "contact" },
+  { label: "Home", tooltip: "Main", src: "/assets/robotic/logo/Home-Logo.png", w: 200, h: 52, left: 129, textWidth: 237, anchor: "home", href: "/" },
+  { label: "Tour", tooltip: "Upcoming Shows", src: "/assets/robotic/logo/Tour-Logo.png", w: 200, h: 52, left: 129, textWidth: 204, anchor: "tour", href: "/events" },
+  { label: "Music", tooltip: "New Releases", src: "/assets/robotic/logo/Music-Logo-New.png", w: 200, h: 52, left: 154, textWidth: 204, anchor: "music", href: "/more-music" },
+  { label: "Shop", tooltip: "Shirts & Hoodies", src: "/assets/robotic/logo/Shop-logo.png", w: 200, h: 52, left: 142, textWidth: 209, anchor: "music", href: "/#music" },
+  { label: "Contact", tooltip: "Management & Bookings", src: "/assets/robotic/logo/Contact-logo.png", w: 200, h: 52, left: 63, textWidth: 376, anchor: "contact", href: "/contact" },
 ]
 
 export const Header = () => {
@@ -26,6 +26,21 @@ export const Header = () => {
   }
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (window.location.pathname === "/contact") {
+        setActiveSection("contact")
+        return
+      }
+      if (window.location.pathname === "/events") {
+        setActiveSection("tour")
+        return
+      }
+      if (window.location.pathname === "/more-music") {
+        setActiveSection("music")
+        return
+      }
+    }
+
     const observerOptions = {
       root: null,
       rootMargin: "-45% 0px -45% 0px",
@@ -42,7 +57,7 @@ export const Header = () => {
 
     const observer = new IntersectionObserver(observerCallback, observerOptions)
 
-    const sections = ["home", "tour", "music", "contact"]
+    const sections = ["home", "tour", "music"]
     sections.forEach((id) => {
       const el = document.getElementById(id)
       if (el) observer.observe(el)
@@ -53,7 +68,11 @@ export const Header = () => {
     }
   }, [])
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, anchor: string) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, item: typeof NAV_LOGOS[0]) => {
+    if (item.href === "/contact" || item.href === "/events" || item.href === "/more-music") {
+      return
+    }
+
     // If not on the homepage, let the default Link behavior redirect them to the homepage's anchor
     if (window.location.pathname !== "/") {
       return
@@ -61,16 +80,16 @@ export const Header = () => {
 
     e.preventDefault()
 
-    if (anchor === "home") {
+    if (item.anchor === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" })
       setActiveSection("home")
       return
     }
 
-    const targetEl = document.getElementById(anchor)
+    const targetEl = document.getElementById(item.anchor)
     if (targetEl) {
       targetEl.scrollIntoView({ behavior: "smooth" })
-      setActiveSection(anchor)
+      setActiveSection(item.anchor)
     }
   }
 
@@ -160,10 +179,10 @@ export const Header = () => {
         {NAV_LOGOS.map((item) => {
           const isActive = activeSection === item.anchor.toLowerCase()
           return (
-            <a
+            <Link
               key={item.label}
-              href={`/#${item.anchor}`}
-              onClick={(e) => handleNavClick(e, item.anchor)}
+              href={item.href}
+              onClick={(e) => handleNavClick(e, item)}
               className="group relative flex items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-110 active:scale-95 py-1"
               style={{
                 width: `calc(var(--logo-h) * ${item.textWidth / 500})`,
@@ -208,7 +227,7 @@ export const Header = () => {
               <span className="absolute top-10 scale-0 group-hover:scale-100 transition-all duration-200 origin-top bg-black/95 border border-white/10 text-white text-[9px] tracking-widest font-brier uppercase px-2.5 py-1.5 rounded-md whitespace-nowrap pointer-events-none z-50 shadow-xl shadow-black/50">
                 {item.tooltip}
               </span>
-            </a>
+            </Link>
           )
         })}
       </nav>
@@ -235,12 +254,12 @@ export const Header = () => {
             const isActive = activeSection === item.anchor.toLowerCase()
             const logoH = 130 // Mobile baseline logo height for cropping
             return (
-              <a
+              <Link
                 key={item.label}
-                href={`/#${item.anchor}`}
+                href={item.href}
                 onClick={(e) => {
                   setIsOpen(false)
-                  handleNavClick(e, item.anchor)
+                  handleNavClick(e, item)
                 }}
                 className={`w-full flex flex-col justify-center items-center py-2.5 border rounded-xl transition-all duration-300 active:scale-98 min-h-16 overflow-hidden ${
                   isActive
@@ -275,7 +294,7 @@ export const Header = () => {
                 }`}>
                   {item.tooltip}
                 </span>
-              </a>
+              </Link>
             )
           })}
         </nav>

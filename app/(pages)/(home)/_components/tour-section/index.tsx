@@ -293,6 +293,14 @@ export const TourSection = () => {
 
   return (
     <section ref={sectionRef} className="tour-section-v2" id="tour">
+      {/* ── Seamless Shade Transition from Home Page ── */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-36 md:h-52 pointer-events-none z-20"
+        style={{
+          background: "linear-gradient(to bottom, #000000 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 70%, transparent 100%)"
+        }}
+      />
+
       {/* ── Background Video Layer ── */}
       <div className="tour-video-bg">
         <video
@@ -315,8 +323,7 @@ export const TourSection = () => {
       {/* ── Section Content ── */}
       <div className="tour-content-wrapper">
         {/* ══════ TITLE BLOCK ══════ */}
-        <div ref={titleRef} className="tour-title-block">
-          <span className="tour-subtitle-label">INTERNATIONAL</span>
+        <div ref={titleRef} className="tour-title-block select-none">
           <h2 className="tour-main-title">
             <span className="tour-title-upcoming">UPCOMING</span>
             <span className="tour-title-events">EVENTS</span>
@@ -411,12 +418,20 @@ export const TourSection = () => {
         </div>
 
         {/* ══════ FOOTER ══════ */}
-        <div className="tour-footer">
+        <div className="tour-footer relative z-20">
           <Link href="/events" className="tour-more-events-btn">
             MORE EVENTS
           </Link>
         </div>
       </div>
+
+      {/* ── Seamless Shade Transition into Music Section ── */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-48 md:h-72 pointer-events-none z-10"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, rgba(5,5,5,0.4) 30%, rgba(5,5,5,0.88) 70%, #07080a 100%)"
+        }}
+      />
     </section>
   )
 }
