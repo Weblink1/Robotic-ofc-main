@@ -14,7 +14,7 @@ export const ScrollMarquee = forwardRef<HTMLDivElement>((_, ref) => {
   return (
     <div
       ref={ref}
-      className="scroll-marquee-container absolute inset-0 flex flex-col items-center justify-center gap-4 md:gap-6 pointer-events-none select-none overflow-hidden"
+      className="scroll-marquee-container absolute inset-0 flex flex-col items-center justify-center gap-[26vh] md:gap-6 pointer-events-none select-none overflow-hidden"
     >
       {/* Row 1: Leftward marquee — city names */}
       <div className="w-full overflow-hidden flex">

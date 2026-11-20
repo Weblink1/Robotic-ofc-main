@@ -1,15 +1,29 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
 import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { getLenis } from "../smooth-scroll"
+
+gsap.registerPlugin(ScrollTrigger)
 
 export const PreLoader = () => {
+  const pathname = usePathname()
+  const isAdminRoute = pathname?.startsWith("/admin")
   const rootRef = useRef<HTMLDivElement>(null)
   const counterRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    if (!rootRef.current || !counterRef.current) {
+    if (isAdminRoute || !rootRef.current || !counterRef.current) {
       return
+    }
+
+    const hasHash = Boolean(window.location.hash)
+    if (!hasHash) {
+      window.scrollTo(0, 0)
+      getLenis()?.scrollTo(0, { immediate: true, force: true })
+      getLenis()?.stop()
     }
 
     const layers = gsap.utils.toArray<HTMLElement>(
@@ -19,20 +33,22 @@ export const PreLoader = () => {
     const counter = { value: 0 }
     gsap.set(layers, { xPercent: 0 })
     gsap.set(counterRef.current, { x: 0 })
-    const tl = gsap.timeline({ delay: 0.5 })
+    const tl = gsap.timeline({ delay: 0.2 })
 
     tl.to(counter, {
       value: 100,
-      duration: 4,
-      ease: "none",
+      duration: 1.6,
+      ease: "power2.out",
       onUpdate: () => {
-        counterRef.current!.innerText = `${Math.floor(counter.value)}%`
+        if (counterRef.current) {
+          counterRef.current.innerText = `${Math.floor(counter.value)}%`
+        }
       }
     })
 
     tl.addLabel("counterDone")
 
-    const textDuration = 0.9
+    const textDuration = 0.5
 
     tl.to(
       counterRef.current,
@@ -46,32 +62,58 @@ export const PreLoader = () => {
 
     tl.addLabel("layersOut", `counterDone+=${textDuration}`)
 
+    // Immediately release pointer events the split-second the layers begin departing!
+    tl.set(rootRef.current, { pointerEvents: "none" }, "layersOut")
+
+    tl.call(
+      () => {
+        if (!window.location.hash) {
+          window.scrollTo(0, 0)
+          getLenis()?.scrollTo(0, { immediate: true, force: true })
+        }
+        getLenis()?.start()
+        ScrollTrigger.refresh()
+      },
+      [],
+      "layersOut"
+    )
+
     tl.to(
       layers,
       {
         xPercent: -100,
-        duration: 0.9,
+        duration: 0.7,
         ease: "power4.inOut",
-        stagger: 0.25
+        stagger: 0.12
       },
       "layersOut"
     )
 
     tl.to(rootRef.current, {
       autoAlpha: 0,
-      duration: 0.6,
-      pointerEvents: "none"
+      duration: 0.4,
+      onComplete: () => {
+        if (rootRef.current) {
+          rootRef.current.style.display = "none"
+        }
+      }
     })
 
     return () => {
+      getLenis()?.start()
       tl.kill()
     }
-  }, [])
+  }, [isAdminRoute])
+
+  if (isAdminRoute) {
+    return null
+  }
 
   return (
     <div
       ref={rootRef}
-      className="fixed inset-0 w-full h-dvh overflow-hidden z-9999"
+      data-preloader-root="true"
+      className="fixed inset-0 w-full h-dvh overflow-hidden z-9999 pointer-events-none"
     >
       <div className="relative w-full h-full flex flex-col">
         <div className="pre-loader-layer-1 flex-1 bg-black" />

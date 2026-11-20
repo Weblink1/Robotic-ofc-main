@@ -1,22 +1,37 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { Logo } from "../vectors/logo"
 import Image from "next/image"
 import Link from "next/link"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
+import { smoothScrollTo } from "../smooth-scroll"
 
 const NAV_LOGOS = [
   { label: "Home", tooltip: "Main", src: "/assets/robotic/logo/Home-Logo.png", w: 200, h: 52, left: 129, textWidth: 237, anchor: "home", href: "/" },
   { label: "Tour", tooltip: "Upcoming Shows", src: "/assets/robotic/logo/Tour-Logo.png", w: 200, h: 52, left: 129, textWidth: 204, anchor: "tour", href: "/events" },
   { label: "Music", tooltip: "New Releases", src: "/assets/robotic/logo/Music-Logo-New.png", w: 200, h: 52, left: 154, textWidth: 204, anchor: "music", href: "/more-music" },
-  { label: "Shop", tooltip: "Shirts & Hoodies", src: "/assets/robotic/logo/Shop-logo.png", w: 200, h: 52, left: 142, textWidth: 209, anchor: "music", href: "/#music" },
+  { label: "Gallery", tooltip: "Visuals", src: "/assets/robotic/logo/Gallery-Logo.png", w: 200, h: 52, left: 61, textWidth: 358, anchor: "gallery", href: "/gallery" },
   { label: "Contact", tooltip: "Management & Bookings", src: "/assets/robotic/logo/Contact-logo.png", w: 200, h: 52, left: 63, textWidth: 376, anchor: "contact", href: "/contact" },
 ]
 
+const getRouteSection = (path: string | null) => {
+  if (!path) return "home"
+  if (path.startsWith("/contact")) return "contact"
+  if (path.startsWith("/events")) return "tour"
+  if (path.startsWith("/more-music")) return "music"
+  if (path.startsWith("/gallery")) return "gallery"
+  return "home"
+}
+
 export const Header = () => {
+  const pathname = usePathname()
+  const isAdminRoute = pathname?.startsWith("/admin")
   const [isOpen, setIsOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState("home")
+  const [activeSection, setActiveSection] = useState(() => getRouteSection(pathname))
+  const [isScrolling, setIsScrolling] = useState(false)
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
   const menuPanelRef = useRef<HTMLDivElement>(null)
   const topLineRef = useRef<HTMLDivElement>(null)
   const bottomLineRef = useRef<HTMLDivElement>(null)
@@ -25,76 +40,127 @@ export const Header = () => {
     setIsOpen(!isOpen)
   }
 
+  // Detect active scrolling down or up to dim navigation & logo on desktop
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (window.location.pathname === "/contact") {
-        setActiveSection("contact")
-        return
+    if (isAdminRoute) return
+
+    const handleScrollActivity = () => {
+      setIsScrolling(true)
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current)
       }
-      if (window.location.pathname === "/events") {
-        setActiveSection("tour")
-        return
-      }
-      if (window.location.pathname === "/more-music") {
-        setActiveSection("music")
-        return
-      }
+      scrollTimerRef.current = setTimeout(() => {
+        setIsScrolling(false)
+      }, 800)
     }
 
-    const observerOptions = {
-      root: null,
-      rootMargin: "-45% 0px -45% 0px",
-      threshold: 0,
-    }
-
-    const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id)
-        }
-      })
-    }
-
-    const observer = new IntersectionObserver(observerCallback, observerOptions)
-
-    const sections = ["home", "tour", "music"]
-    sections.forEach((id) => {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    })
+    window.addEventListener("scroll", handleScrollActivity, { passive: true })
+    window.addEventListener("wheel", handleScrollActivity, { passive: true })
+    window.addEventListener("touchmove", handleScrollActivity, { passive: true })
 
     return () => {
-      observer.disconnect()
+      window.removeEventListener("scroll", handleScrollActivity)
+      window.removeEventListener("wheel", handleScrollActivity)
+      window.removeEventListener("touchmove", handleScrollActivity)
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current)
+      }
     }
-  }, [])
+  }, [isAdminRoute])
+
+  const isHome = pathname === "/"
+  // Desktop header opacity rules:
+  // - Homepage while scrolling down or up: 45% less visible => 55% visibility (opacity: 0.55)
+  // - Other pages (Tour /events, Music /more-music, Gallery /gallery, Contact /contact) while scrolling: 85% visibility (opacity: 0.85)
+  // - When resting / not scrolling: 100% visibility (opacity: 1)
+  const desktopOpacity = isScrolling ? (isHome ? 0.55 : 0.85) : 1
+
+  useEffect(() => {
+    if (isAdminRoute) return
+
+    const baseSection = getRouteSection(pathname)
+
+    if (baseSection === "contact") {
+      setActiveSection("contact")
+      return
+    }
+
+    const setActiveIfChanged = (next: string) => {
+      setActiveSection((prev) => (prev === next ? prev : next))
+    }
+
+    const syncActiveSection = () => {
+      const vh = window.innerHeight || 800
+      const midY = vh * 0.45
+      const docHeight = document.documentElement.scrollHeight
+      const nearBottom = window.scrollY + vh >= docHeight - 40
+
+      // Always highlight Contact when the shared Contact footer dominates the viewport
+      const contactEl = document.getElementById("contact")
+      if (contactEl) {
+        const contactRect = contactEl.getBoundingClientRect()
+        if (contactRect.top <= midY || (nearBottom && contactRect.top < vh * 0.75)) {
+          setActiveIfChanged("contact")
+          return
+        }
+      }
+
+      if (pathname !== "/") {
+        setActiveIfChanged(baseSection)
+        return
+      }
+
+      // Homepage scroll-spy from bottom-most flow section upward
+      for (const id of ["gallery", "music", "tour"] as const) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= midY) {
+          setActiveIfChanged(id)
+          return
+        }
+      }
+
+      setActiveIfChanged("home")
+    }
+
+    syncActiveSection()
+    const settleT1 = setTimeout(syncActiveSection, 250)
+    const settleT2 = setTimeout(syncActiveSection, 900)
+
+    window.addEventListener("scroll", syncActiveSection, { passive: true })
+    window.addEventListener("resize", syncActiveSection, { passive: true })
+
+    return () => {
+      clearTimeout(settleT1)
+      clearTimeout(settleT2)
+      window.removeEventListener("scroll", syncActiveSection)
+      window.removeEventListener("resize", syncActiveSection)
+    }
+  }, [pathname, isAdminRoute])
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, item: typeof NAV_LOGOS[0]) => {
-    if (item.href === "/contact" || item.href === "/events" || item.href === "/more-music") {
+    const currentPath = window.location.pathname
+
+    // If clicking the link for the page we're already on, smooth-scroll to top (or #gallery on homepage)
+    if (item.anchor === "gallery" && currentPath === "/") {
+      e.preventDefault()
+      const targetEl = document.getElementById("gallery")
+      if (targetEl) {
+        smoothScrollTo(targetEl)
+        setActiveSection("gallery")
+      }
       return
     }
 
-    // If not on the homepage, let the default Link behavior redirect them to the homepage's anchor
-    if (window.location.pathname !== "/") {
-      return
-    }
-
-    e.preventDefault()
-
-    if (item.anchor === "home") {
-      window.scrollTo({ top: 0, behavior: "smooth" })
-      setActiveSection("home")
-      return
-    }
-
-    const targetEl = document.getElementById(item.anchor)
-    if (targetEl) {
-      targetEl.scrollIntoView({ behavior: "smooth" })
+    if (currentPath === item.href) {
+      e.preventDefault()
+      smoothScrollTo(0)
       setActiveSection(item.anchor)
+      return
     }
   }
 
   useGSAP(() => {
-    if (!topLineRef.current || !bottomLineRef.current) return
+    if (isAdminRoute || !topLineRef.current || !bottomLineRef.current) return
 
     if (isOpen) {
       // Animate hamburger to X
@@ -151,16 +217,50 @@ export const Header = () => {
         })
       }
     }
-  }, [isOpen])
+  }, [isOpen, isAdminRoute])
+
+  // Do not render public site navigation inside the DJ Admin Studio portal
+  if (isAdminRoute) {
+    return null
+  }
 
   return (
-    <header className="px-6 md:px-8 w-full h-20 flex justify-between items-center bg-transparent fixed z-999">
-      <Link href="/" className="z-50">
+    <header 
+      className="px-6 md:px-8 w-full h-20 flex justify-between items-center bg-transparent fixed z-999 pointer-events-none group/header"
+      style={{
+        "--desktop-header-opacity": desktopOpacity,
+      } as React.CSSProperties}
+    >
+      <Link
+        href="/"
+        onClick={(e) => {
+          setIsOpen(false)
+          if (window.location.pathname === "/") {
+            e.preventDefault()
+            smoothScrollTo(0)
+            setActiveSection("home")
+          }
+        }}
+        className="z-50 pointer-events-auto desktop-nav-dim"
+      >
         <Logo width="195" height="58" fill="#fff" />
       </Link>
 
       {/* Desktop nav links — Logos, top-right */}
       <style>{`
+        .desktop-nav-dim {
+          transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @media (min-width: 768px) {
+          .desktop-nav-dim {
+            opacity: var(--desktop-header-opacity, 1);
+          }
+          header:hover .desktop-nav-dim,
+          .desktop-nav-dim:hover,
+          header:focus-within .desktop-nav-dim {
+            opacity: 1 !important;
+          }
+        }
         .nav-logo-container {
           --logo-h: 100px;
         }
@@ -175,7 +275,7 @@ export const Header = () => {
           }
         }
       `}</style>
-      <nav className="hidden md:flex items-center gap-6 lg:gap-9 nav-logo-container" aria-label="Robotic ofc navigation">
+      <nav className="hidden md:flex items-center gap-6 lg:gap-9 nav-logo-container pointer-events-auto desktop-nav-dim" aria-label="Robotic ofc navigation">
         {NAV_LOGOS.map((item) => {
           const isActive = activeSection === item.anchor.toLowerCase()
           return (
@@ -197,9 +297,14 @@ export const Header = () => {
                     : "bg-purple-950/[0.05] backdrop-blur-[8px] border-white/10 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.3)] group-hover:border-[#d8b4fe]/30 group-hover:bg-purple-900/[0.08] group-hover:shadow-[0_0_8px_rgba(216,180,254,0.1)]"
                 }`}
               >
-                {/* Shifting purple/metallic liquid glass reflection layers */}
-                <div className="absolute inset-0 z-0 bg-[linear-gradient(120deg,transparent_20%,rgba(216,180,254,0.07)_38%,rgba(255,255,255,0.18)_50%,rgba(168,85,247,0.07)_62%,transparent_80%)] bg-[length:250%_100%] animate-liquid-flow pointer-events-none" />
-                <div className="absolute inset-0 z-0 bg-[linear-gradient(240deg,transparent_25%,rgba(255,255,255,0.04)_40%,rgba(216,180,254,0.08)_50%,rgba(255,255,255,0.04)_60%,transparent_75%)] bg-[length:250%_100%] animate-liquid-flow-fast pointer-events-none mix-blend-overlay" />
+                {/* Synchronized liquid glass reflection sheen */}
+                <div
+                  className="absolute inset-y-0 -left-[10%] w-[120%] pointer-events-none animate-liquid-flow"
+                  style={{
+                    background:
+                      "linear-gradient(115deg, transparent 0%, rgba(216,180,254,0.03) 22%, rgba(216,180,254,0.12) 36%, rgba(255,255,255,0.28) 50%, rgba(216,180,254,0.12) 64%, rgba(168,85,247,0.04) 78%, transparent 100%)",
+                  }}
+                />
               </div>
 
               <div className="relative w-full h-full">
@@ -237,7 +342,7 @@ export const Header = () => {
         type="button"
         aria-label="Toggle mobile menu"
         onClick={toggleMenu}
-        className="md:hidden z-50 w-11 h-11 flex flex-col justify-center items-center gap-1.5 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-colors duration-300"
+        className="md:hidden z-50 w-11 h-11 flex flex-col justify-center items-center gap-1.5 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-colors duration-300 pointer-events-auto"
       >
         <div ref={topLineRef} className="w-5 h-[4px] bg-white rounded-full" />
         <div ref={bottomLineRef} className="w-5 h-[4px] bg-white rounded-full" />
@@ -246,7 +351,7 @@ export const Header = () => {
       {/* Mobile dropdown panel */}
       <div
         ref={menuPanelRef}
-        className="absolute top-20 right-6 left-6 z-45 hidden rounded-2xl border border-white/10 bg-black/95 backdrop-blur-lg px-6 py-8 shadow-2xl shadow-purple-950/20"
+        className="absolute top-20 right-6 left-6 z-45 hidden rounded-2xl border border-white/10 bg-black/95 backdrop-blur-lg px-6 py-8 shadow-2xl shadow-purple-950/20 pointer-events-auto"
       >
         <div className="absolute inset-0 opacity-[0.02] [background-image:linear-gradient(rgba(216,180,254,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(216,180,254,0.8)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none rounded-2xl" />
         <nav className="relative flex flex-col gap-6 items-center">

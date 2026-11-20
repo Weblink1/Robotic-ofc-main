@@ -4,161 +4,7 @@ import Link from "next/link"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ROBOTIC — INTERNATIONAL GIG GUIDE 2025
-   Tour data from official booking desk
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-type ShowStatus = "upcoming" | "sold-out" | "cancelled"
-
-interface TourDate {
-  id: number
-  date: string
-  day: string
-  month: string
-  year: string
-  city: string
-  country: string
-  countryCode: string
-  venue: string
-  festival: string
-  status: ShowStatus
-  ticketUrl: string
-  lineup: string
-  flyerUrl?: string   // Optional event flyer/poster image URL
-}
-
-const TOUR_DATES: TourDate[] = [
-  {
-    id: 1,
-    date: "03",
-    day: "THU",
-    month: "JUL",
-    year: "2025",
-    city: "Lagos",
-    country: "Nigeria",
-    countryCode: "ng",
-    venue: "Element House",
-    festival: "Element House Lagos",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Robotic × Local Support TBA",
-    flyerUrl: "/assets/robotic/tour/flyers/element-house-lagos.jpg",
-  },
-  {
-    id: 2,
-    date: "04",
-    day: "FRI",
-    month: "JUL",
-    year: "2025",
-    city: "Luanda",
-    country: "Angola",
-    countryCode: "ao",
-    venue: "Circus Club",
-    festival: "Circus Luanda",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Robotic × Afro House DJs",
-    flyerUrl: "/assets/robotic/tour/flyers/circus-luanda.jpg",
-  },
-  {
-    id: 3,
-    date: "30",
-    day: "WED",
-    month: "JUL",
-    year: "2025",
-    city: "Nairobi",
-    country: "Kenya",
-    countryCode: "ke",
-    venue: "Naya Nights",
-    festival: "Naya Nights Nairobi",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Robotic × East African Selectors",
-    flyerUrl: "/assets/robotic/tour/flyers/naya-nights-nairobi.jpg",
-  },
-  {
-    id: 4,
-    date: "01",
-    day: "FRI",
-    month: "AUG",
-    year: "2025",
-    city: "Nairobi",
-    country: "Kenya",
-    countryCode: "ke",
-    venue: "TBC",
-    festival: "Nairobi Nights I",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Robotic × Special Guests",
-    flyerUrl: "/assets/robotic/tour/flyers/nairobi-nights-1.jpg",
-  },
-  {
-    id: 5,
-    date: "02",
-    day: "SAT",
-    month: "AUG",
-    year: "2025",
-    city: "Nairobi",
-    country: "Kenya",
-    countryCode: "ke",
-    venue: "TBC",
-    festival: "Nairobi Nights II",
-    status: "sold-out",
-    ticketUrl: "#",
-    lineup: "Robotic × Kenya All-Stars",
-    flyerUrl: "/assets/robotic/tour/flyers/nairobi-nights-2.jpg",
-  },
-  {
-    id: 6,
-    date: "03",
-    day: "SUN",
-    month: "AUG",
-    year: "2025",
-    city: "Nairobi",
-    country: "Kenya",
-    countryCode: "ke",
-    venue: "TBC",
-    festival: "Nairobi Nights III",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Robotic × Support TBA",
-    flyerUrl: "/assets/robotic/tour/flyers/nairobi-nights-3.jpg",
-  },
-  {
-    id: 7,
-    date: "09",
-    day: "SAT",
-    month: "AUG",
-    year: "2025",
-    city: "Bulawayo",
-    country: "Zimbabwe",
-    countryCode: "zw",
-    venue: "Garden of House",
-    festival: "Garden of House Festival",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Robotic × Zimbabwe Underground DJs",
-    flyerUrl: "/assets/robotic/tour/flyers/garden-of-house.jpg",
-  },
-  {
-    id: 8,
-    date: "05",
-    day: "FRI",
-    month: "SEP",
-    year: "2025",
-    city: "Durban",
-    country: "South Africa",
-    countryCode: "za",
-    venue: "Shimza & Friends",
-    festival: "Shimza & Friends Durban",
-    status: "upcoming",
-    ticketUrl: "#",
-    lineup: "Shimza × Robotic × More TBA",
-    flyerUrl: "/assets/robotic/tour/flyers/shimza-friends-durban.jpg",
-  },
-]
+import { useSiteData, type ShowStatus } from "@/app/lib/site-data"
 
 function StatusBadge({ status }: { status: ShowStatus }) {
   const config = {
@@ -208,13 +54,28 @@ function CountryFlag({ code, country }: { code: string; country: string }) {
       alt={`${country} flag`}
       className="tour-card-flag-img"
       loading="lazy"
+      decoding="async"
     />
   )
 }
 
 function EventFlyer({ url, festival }: { url: string; festival: string }) {
   const [imgError, setImgError] = useState(false)
-  if (imgError) return null
+
+  if (imgError || !url) {
+    return (
+      <div className="tour-card-flyer-wrapper">
+        <div className="tour-card-flyer-placeholder" title={festival}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span>FLYER</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="tour-card-flyer-wrapper">
@@ -223,6 +84,7 @@ function EventFlyer({ url, festival }: { url: string; festival: string }) {
         alt={`${festival} event flyer`}
         className="tour-card-flyer-img"
         loading="lazy"
+        decoding="async"
         onError={() => setImgError(true)}
       />
     </div>
@@ -230,6 +92,7 @@ function EventFlyer({ url, festival }: { url: string; festival: string }) {
 }
 
 export const TourSection = () => {
+  const { data } = useSiteData()
   const sectionRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLDivElement>(null)
   const cardsRef = useRef<(HTMLDivElement | null)[]>([])
@@ -237,9 +100,28 @@ export const TourSection = () => {
 
   useEffect(() => {
     const video = videoRef.current
-    if (video) {
+    const section = sectionRef.current
+    if (!video) return
+
+    if (typeof IntersectionObserver === "undefined" || !section) {
       video.play().catch(() => {})
+      return
     }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (!entry) return
+        if (entry.isIntersecting) {
+          video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      },
+      { rootMargin: "100px 0px" }
+    )
+    io.observe(section)
+    return () => io.disconnect()
   }, [])
 
   useGSAP(
@@ -289,7 +171,7 @@ export const TourSection = () => {
   )
 
   // Show only the first 4 upcoming events on the main page
-  const displayedShows = TOUR_DATES.slice(0, 4)
+  const displayedShows = data.tourDates.slice(0, 4)
 
   return (
     <section ref={sectionRef} className="tour-section-v2" id="tour">
@@ -309,9 +191,16 @@ export const TourSection = () => {
           loop
           muted
           playsInline
-          preload="auto"
-          className="tour-video-element"
+          preload="metadata"
+          disablePictureInPicture
+          controlsList="nodownload nofullscreen noremoteplayback"
+          className="tour-video-element pointer-events-none select-none"
         >
+          <source
+            src="/assets/robotic/tour/perf-video-mobile.mp4"
+            media="(max-width: 767px)"
+            type="video/mp4"
+          />
           <source
             src="/assets/robotic/tour/perf-video.mp4"
             type="video/mp4"
@@ -336,6 +225,9 @@ export const TourSection = () => {
           {displayedShows.map((show, idx) => {
             const isSoldOut = show.status === "sold-out"
             const isCancelled = show.status === "cancelled"
+            const hasTicketUrl = Boolean(
+              show.ticketUrl && show.ticketUrl.trim() !== "" && show.ticketUrl.trim() !== "#"
+            )
 
             return (
               <div
@@ -383,9 +275,9 @@ export const TourSection = () => {
                   <div className="tour-card-action">
                     {!isSoldOut && !isCancelled ? (
                       <a
-                        href={show.ticketUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={hasTicketUrl ? show.ticketUrl : "/contact"}
+                        target={hasTicketUrl && show.ticketUrl.startsWith("http") ? "_blank" : undefined}
+                        rel={hasTicketUrl && show.ticketUrl.startsWith("http") ? "noopener noreferrer" : undefined}
                         className="tour-card-ticket-btn"
                         aria-label={`Get tickets for ${show.festival}`}
                       >
@@ -419,17 +311,44 @@ export const TourSection = () => {
 
         {/* ══════ FOOTER ══════ */}
         <div className="tour-footer relative z-20">
-          <Link href="/events" className="tour-more-events-btn">
-            MORE EVENTS
+          <Link href="/events" className="tour-more-events-btn group">
+            {/* Animated Liquid Metallic / Glass Border */}
+            <div className="tour-more-events-border" />
+
+            {/* Chamfered Top Rim Specular Highlight */}
+            <div className="pointer-events-none absolute inset-0 rounded-full border border-white/20 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4)] z-20" />
+
+            {/* Inner Pill Surface */}
+            <div className="tour-more-events-inner">
+              {/* Metallic Sheen Reflection Layer */}
+              <div className="tour-more-events-sheen" />
+
+              <span className="relative z-10 font-outfit text-xs md:text-[13px] font-black tracking-[0.22em] text-white/95 group-hover:text-white group-hover:tracking-[0.26em] transition-all duration-300 drop-shadow-[0_1px_8px_rgba(255,255,255,0.35)]">
+                MORE EVENTS
+              </span>
+
+              <svg
+                className="relative z-10 w-4 h-4 text-white/90 transition-transform duration-300 group-hover:translate-x-1.5 group-hover:text-white drop-shadow-[0_0_8px_rgba(216,180,254,0.5)]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </div>
           </Link>
         </div>
       </div>
 
       {/* ── Seamless Shade Transition into Music Section ── */}
       <div 
-        className="absolute bottom-0 left-0 right-0 h-48 md:h-72 pointer-events-none z-10"
+        className="absolute bottom-0 left-0 right-0 h-24 md:h-32 pointer-events-none z-10"
         style={{
-          background: "linear-gradient(to bottom, transparent 0%, rgba(5,5,5,0.4) 30%, rgba(5,5,5,0.88) 70%, #07080a 100%)"
+          background: "linear-gradient(to bottom, transparent 0%, rgba(5,5,5,0.2) 40%, rgba(7,8,10,0.7) 100%)"
         }}
       />
     </section>

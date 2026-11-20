@@ -21,8 +21,7 @@
   --color-main-bg: #232224;
   --color-white: #ffffff;
   --color-beige: #b9bbad;
-  --color-default: #d2ff00;
-  --color-musgo: #282C20;
+  --color-default: #d8b4fe;
   --font-sans: "Mona Sans", sans-serif;
   --font-brier: "Brier", sans-serif;
   --font-bungee: "Bungee", sans-serif;
@@ -59,7 +58,7 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow-x: clip;
   scrollbar-width: none;
   -ms-overflow-style: none;
   background: var(--color-black);
@@ -85,6 +84,46 @@ html.lenis body {
 
 .lenis-scrolling iframe {
   pointer-events: none;
+}
+
+/* Custom sleek dark scrollbar for modals & panels */
+.custom-scrollbar,
+.editorial-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216, 180, 254, 0.28) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.editorial-modal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.editorial-modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.editorial-modal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(216, 180, 254, 0.25);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.editorial-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(216, 180, 254, 0.5);
+}
+
+/* Hide scrollbar completely while maintaining full scrollability */
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -129,44 +168,6 @@ button {
   border: none;
 }
 
-.menu-link {
-  will-change: transform;
-}
-
-.footer-menu-link {
-  will-change: transform;
-}
-
-.digit {
-  height: 100px;
-  perspective: 800px;
-  overflow: hidden;
-}
-
-.digit-inner {
-  transform-style: preserve-3d;
-}
-
-.digit-inner div {
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.picture-area {
-  width: 100%;
-  height: 100%;
-}
-
-.circuit-3d-container {
-  transform-style: preserve-3d;
-}
-
-.format {
-  clip-path: ellipse(82% 85% at 60% 0);
-}
-
 .robotic-portrait-stage {
   position: relative;
   width: min(92vw, 500px);
@@ -179,15 +180,15 @@ button {
   height: 100%;
   width: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 35px rgba(216, 180, 254, 0.17)) 
-          drop-shadow(0 0 70px rgba(124, 58, 237, 0.14));
-  will-change: filter;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  filter: drop-shadow(0 0 6px rgba(233, 213, 255, 0.19)) drop-shadow(0 0 18px rgba(216, 180, 254, 0.15)) drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5));
 }
 
 @media (min-width: 768px) {
   .robotic-portrait-image {
-    filter: drop-shadow(0 0 35px rgba(216, 180, 254, 0.088)) 
-            drop-shadow(0 0 70px rgba(124, 58, 237, 0.067));
+    filter: drop-shadow(0 0 6px rgba(233, 213, 255, 0.19)) drop-shadow(0 0 18px rgba(216, 180, 254, 0.15)) drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
   }
 }
 
@@ -242,7 +243,7 @@ button {
   width: clamp(16px, 2.1vw, 32px);
   will-change: transform;
   transform-origin: bottom center;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.09s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .robotic-beat-column {
@@ -254,7 +255,7 @@ button {
   transform-origin: bottom;
   animation: roboticBeat var(--bar-duration) ease-in-out infinite;
   animation-delay: var(--bar-delay);
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 .robotic-beat-cube {
@@ -262,7 +263,6 @@ button {
   aspect-ratio: 5.5 / 1;
   width: 100%;
   border-radius: 1.5px;
-  will-change: transform;
 }
 
 .robotic-beat-cube--white {
@@ -305,20 +305,17 @@ button {
   45%,
   100% {
     opacity: 0.37;
-    transform: translateY(80%);
-    filter: blur(0px);
+    transform: translate3d(0, 80%, 0);
   }
 
   22% {
     opacity: 0.87;
-    transform: translateY(40%);
-    filter: blur(2.4px);
+    transform: translate3d(0, 40%, 0);
   }
 
   72% {
     opacity: 0.70;
-    transform: translateY(42%);
-    filter: blur(1.8px);
+    transform: translate3d(0, 42%, 0);
   }
 }
 
@@ -327,20 +324,17 @@ button {
   45%,
   100% {
     opacity: 0.45;
-    transform: translateY(0%);
-    filter: blur(0px);
+    transform: translate3d(0, 0%, 0);
   }
 
   22% {
     opacity: 0.9;
-    transform: translateY(-45%);
-    filter: blur(1.5px);
+    transform: translate3d(0, -45%, 0);
   }
 
   72% {
     opacity: 0.75;
-    transform: translateY(-35%);
-    filter: blur(1px);
+    transform: translate3d(0, -35%, 0);
   }
 }
 
@@ -420,448 +414,8 @@ button {
   }
 }
 
-@layer components {
-  .testimonials-section {
-    @apply relative w-full z-10 overflow-hidden;
-  }
-
-  .pin-wrapper {
-    @apply relative h-screen w-full overflow-hidden;
-  }
-
-  .titles-wrapper {
-    @apply absolute inset-0 flex flex-col items-center pt-[5vw] pointer-events-none;
-  }
-
-  .pin-box {
-    @apply relative h-full w-full flex items-center justify-start xl:justify-center;
-  }
-
-  .vd-card {
-    @apply flex-none overflow-hidden rounded-3xl md:rounded-[2vw] bg-white;
-    margin-left: -140px;
-    will-change: transform;
-  }
-
-  .vd-card:first-child {
-    margin-left: 0;
-  }
-
-  .vd-card:nth-child(odd) {
-    transform: translateY(-30px);
-  }
-
-  .vd-card:nth-child(even) {
-    transform: translateY(30px);
-  }
-
-  @media (max-width: 768px) {
-    .vd-card {
-      margin-left: -90px;
-    }
-
-    .vd-card:nth-child(odd),
-    .vd-card:nth-child(even) {
-      transform: translateY(0);
-    }
-  }
-}
-
-
-@media (min-width: 1024px) and (min-height: 576px) {
-  :root {
-    --helmet-inset: 90px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 345px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 600px) {
-  :root {
-    --helmet-inset: 90px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 365px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 640px) {
-  :root {
-    --helmet-inset: 90px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 400px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 720px) {
-  :root {
-    --helmet-inset: 120px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 430px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 768px) {
-  :root {
-    --helmet-inset: 120px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 460px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 800px) {
-  :root {
-    --helmet-inset: 130px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 480px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 900px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 535px;
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 900px) {
-  :root {
-    --helmet-inset: 470px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 640px
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 720px) {
-  :root {
-    --helmet-inset: 120px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 430px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 768px) {
-  :root {
-    --helmet-inset: 120px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 465px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 800px) {
-  :root {
-    --helmet-inset: 130px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 480px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 854px) {
-  :root {
-    --helmet-inset: 130px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 520px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 900px) {
-  :root {
-    --helmet-inset: 140px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 540px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 960px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 575px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 1024px) {
-  :root {
-    --helmet-inset: 160px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 615px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 1050px) {
-  :root {
-    --helmet-inset: 160px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 630px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 1080px) {
-  :root {
-    --helmet-inset: 160px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 660px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 190px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 715px;
-  }
-}
-
-@media (min-width: 1280px) and (min-height: 1280px) {
-  :root {
-    --helmet-inset: 190px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 780px;
-  }
-}
-
-@media (min-width: 1366px) and (min-height: 768px) {
-  :root {
-    --helmet-inset: 120px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 465px;
-  }
-}
-
-@media (min-width: 1366px) and (min-height: 800px) {
-  :root {
-    --helmet-inset: 130px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 480px;
-  }
-}
-
-@media (min-width: 1366px) and (min-height: 900px) {
-  :root {
-    --helmet-inset: 140px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 540px;
-  }
-}
-
-@media (min-width: 1366px) and (min-height: 1024px) {
-  :root {
-    --helmet-inset: 160px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 610px;
-  }
-}
-
-@media (min-width: 1366px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 180px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 725px;
-  }
-}
-
-@media (min-width: 1440px) and (min-height: 900px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 520px;
-  }
-}
-
-@media (min-width: 1440px) and (min-height: 960px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 570px;
-  }
-}
-
-@media (min-width: 1440px) and (min-height: 1050px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 650px;
-  }
-}
-
-@media (min-width: 1440px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 190px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 715px;
-  }
-}
-
-@media (min-width: 1440px) and (min-height: 1440px) {
-  :root {
-    --helmet-inset: 220px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 860px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 864px) {
-  :root {
-    --helmet-inset: 130px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 520px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 900px) {
-  :root {
-    --helmet-inset: 130px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 550px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 960px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 575px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 1024px) {
-  :root {
-    --helmet-inset: 180px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 590px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 1080px) {
-  :root {
-    --helmet-inset: 170px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 645px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 190px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 715px;
-  }
-}
-
-@media (min-width: 1536px) and (min-height: 1440px) {
-  :root {
-    --helmet-inset: 220px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 875px;
-  }
-}
-
-@media (min-width: 1600px) and (min-height: 1050px) {
-  :root {
-    --helmet-inset: 170px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 620px;
-  }
-}
-
-@media (min-width: 1600px) and (min-height: 1080px) {
-  :root {
-    --helmet-inset: 170px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 650px;
-  }
-}
-
-@media (min-width: 1600px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 190px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 730px;
-  }
-}
-
-@media (min-width: 1600px) and (min-height: 1440px) {
-  :root {
-    --helmet-inset: 210px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 875px;
-  }
-}
-
-@media (min-width: 1920px) {
-  :root {
-    --helmet-inset: 150px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 570px;
-  }
-}
-
-@media (min-width: 2560px) and (min-height: 1080px) {
-  :root {
-    --helmet-inset: 170px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 650px;
-  }
-}
-
-@media (min-width: 2560px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 170px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 735px;
-  }
-}
-
-@media (min-width: 2560px) and (min-height: 1440px) {
-  :root {
-    --helmet-inset: 220px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 865px;
-  }
-}
-
-@media (min-width: 2560px) and (min-height: 1600px) {
-  :root {
-    --helmet-inset: 255px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 955px;
-  }
-}
-
-@media (min-width: 3340px) and (min-height: 1080px) {
-  :root {
-    --helmet-inset: 170px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 650px;
-  }
-}
-
-@media (min-width: 3340px) and (min-height: 1200px) {
-  :root {
-    --helmet-inset: 195px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 710px;
-  }
-}
-
-@media (min-width: 3340) and (min-height: 1440px) {
-  :root {
-    --helmet-inset: 230px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 860px;
-  }
-}
-
-@media (min-width: 3340px) and (min-height: 1600px) {
-  :root {
-    --helmet-inset: 230px 0 0;
-    --helmet-width: 100%;
-    --helmet-height: 980px;
-  }
-}
-
 /* Hide Next.js dev compiler toast indicators in browser */
-[data-nextjs-toast], 
+[data-nextjs-toast],
 [data-nextjs-dialog-overlay], 
 nextjs-portal,
 #nextjs-hud,
@@ -877,78 +431,71 @@ nextjs-hud,
 
 @keyframes gridInteractive {
   0% {
-    background-position: 0px 0px;
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    background-position: 21px 21px;
+    transform: translate3d(12px, 12px, 0);
   }
   100% {
-    background-position: 0px 0px;
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .animate-grid-interactive {
-  animation: gridInteractive 12s ease-in-out infinite;
+  animation: gridInteractive 14s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes marqueeLeft {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 @keyframes marqueeRight {
   0% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
   100% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .animate-marquee-left {
   display: inline-flex;
   animation: marqueeLeft 28s linear infinite;
+  will-change: transform;
 }
 
 .animate-marquee-right {
   display: inline-flex;
   animation: marqueeRight 28s linear infinite;
+  will-change: transform;
 }
 
 @keyframes liquidFlow {
   0% {
-    background-position: 0% 50%;
+    transform: translateX(-115%);
   }
   50% {
-    background-position: 100% 50%;
+    transform: translateX(115%);
   }
   100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes liquidFlowReverse {
-  0% {
-    background-position: 100% 50%;
-  }
-  50% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 100% 50%;
+    transform: translateX(-115%);
   }
 }
 
 .animate-liquid-flow {
   animation: liquidFlow 5.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-liquid-flow-fast {
-  animation: liquidFlowReverse 3.5s ease-in-out infinite;
+  animation: liquidFlow 5.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes metallicGlow {
@@ -1013,8 +560,8 @@ nextjs-hud,
   object-fit: cover;
   object-position: center center;
   transform: translateZ(0);
-  /* Subtle blur smooths out pixel edges — makes low-res look clean */
-  filter: brightness(0.55) saturate(0.85) blur(0.6px);
+  /* Crisp hardware accelerated rendering */
+  filter: brightness(0.55) saturate(0.85);
   /* GPU-accelerated rendering for smoother playback */
   will-change: transform;
   -webkit-backface-visibility: hidden;
@@ -1036,6 +583,19 @@ nextjs-hud,
       rgba(0,0,0,0.9) 100%
     );
   z-index: 1;
+}
+
+/* Home page only: lighter top fade so the cover transition isn't too dark */
+#tour .tour-video-overlay {
+  background:
+    linear-gradient(180deg,
+      rgba(0,0,0,0.45) 0%,
+      rgba(0,0,0,0.38) 12%,
+      rgba(0,0,0,0.38) 35%,
+      rgba(0,0,0,0.4) 65%,
+      rgba(0,0,0,0.42) 85%,
+      rgba(0,0,0,0.5) 100%
+    );
 }
 
 /* â”€â”€ Content Wrapper â”€â”€ */
@@ -1197,6 +757,11 @@ nextjs-hud,
   background: rgba(255,255,255,0.05);
   border-bottom-color: rgba(220,220,220,0.15);
   transform: translateX(6px);
+  z-index: 20;
+}
+
+.tour-card:has(.tour-card-flyer-wrapper:hover) {
+  z-index: 100;
 }
 
 .tour-card:hover::before {
@@ -1227,11 +792,13 @@ nextjs-hud,
   border-radius: 14px;
   background: linear-gradient(
     145deg,
-    rgba(255,255,255,0.08) 0%,
-    rgba(255,255,255,0.03) 100%
+    rgba(255,255,255,0.12) 0%,
+    rgba(255,255,255,0.05) 100%
   );
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transform: translateZ(0);
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -1247,11 +814,18 @@ nextjs-hud,
   background: conic-gradient(
     from 180deg,
     transparent 0%,
-    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.05) 25%,
     transparent 50%
   );
-  animation: dateGlint 8s linear infinite;
+  transform: translateZ(0);
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tour-card:hover .tour-card-date::after {
+  opacity: 1;
+  animation: dateGlint 8s linear infinite;
 }
 
 @keyframes dateGlint {
@@ -1506,7 +1080,7 @@ nextjs-hud,
   transition: z-index 0s 0.35s; /* delay z-index drop until animation finishes */
 }
 
-/* Background glowing/radiating neon aura */
+/* Background glowing/radiating silver aura */
 .tour-card-flyer-wrapper::before {
   content: "";
   position: absolute;
@@ -1515,23 +1089,23 @@ nextjs-hud,
   right: 0;
   bottom: 0;
   border-radius: 8px;
-  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #3b82f6 100%);
+  background: radial-gradient(circle, rgba(203, 213, 225, 0.4) 0%, rgba(148, 163, 184, 0.18) 50%, rgba(100, 116, 139, 0) 80%);
   opacity: 0;
-  filter: blur(15px);
+  filter: blur(12px);
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   z-index: -1;
   pointer-events: none;
 }
 
 .tour-card-flyer-wrapper:hover {
-  z-index: 50;
+  z-index: 150;
   transition: z-index 0s 0s;
 }
 
 .tour-card-flyer-wrapper:hover::before {
   opacity: 0.85;
-  transform: scale(5.3) rotate(-2deg) translateY(-4px);
-  animation: glowPulse 2s ease-in-out infinite alternate;
+  transform: scale(3.55) translateY(-8px);
+  animation: glowPulse 2.5s ease-in-out infinite alternate;
 }
 
 .tour-card-flyer-img {
@@ -1539,23 +1113,24 @@ nextjs-hud,
   height: 100%;
   object-fit: cover;
   border-radius: 6px;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: #1a1e26;
+  border: 1.5px solid rgba(226, 232, 240, 0.25);
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: all 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   transform-origin: center center;
+  will-change: transform, box-shadow;
 }
 
-/* Hover: Expand bigger + radiating glow */
+/* Hover: Much larger scale (expanded poster preview) + crisp silver aura */
 .tour-card-flyer-wrapper:hover .tour-card-flyer-img {
-  transform: scale(5) rotate(2deg) translateY(-4px); /* Made it bigger and tilted */
-  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(3.4) translateY(-8px);
+  border-color: rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.8),
-    0 0 20px rgba(168, 85, 247, 0.4),
-    0 0 40px rgba(236, 72, 153, 0.2);
-  border-radius: 8px;
-  filter: brightness(1.1);
+    0 24px 50px rgba(0, 0, 0, 0.95),
+    0 0 30px rgba(226, 232, 240, 0.35);
+  border-radius: 10px;
+  filter: brightness(1.08);
 }
 
 /* Fallback flyer placeholder */
@@ -1568,11 +1143,12 @@ nextjs-hud,
   justify-content: center;
   gap: 4px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1.5px dashed rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.35);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  background: linear-gradient(145deg, rgba(30, 36, 46, 0.8) 0%, rgba(18, 22, 29, 0.9) 100%);
+  border: 1.5px dashed rgba(203, 213, 225, 0.25);
+  color: rgba(203, 213, 225, 0.6);
+  transition: all 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   transform-origin: center center;
+  will-change: transform, box-shadow;
 }
 
 .tour-card-flyer-placeholder span {
@@ -1584,19 +1160,20 @@ nextjs-hud,
 }
 
 .tour-card-flyer-placeholder svg {
-  opacity: 0.5;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 
 .tour-card-flyer-wrapper:hover .tour-card-flyer-placeholder {
-  transform: scale(5) rotate(2deg) translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.6);
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(236, 72, 153, 0.1) 100%);
-  color: #fff;
+  transform: scale(3.4) translateY(-8px);
+  border-color: rgba(226, 232, 240, 0.85);
+  background: linear-gradient(135deg, #2b323f 0%, #1a202c 50%, #252d3a 100%);
+  color: #e2e8f0;
   border-style: solid;
   box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.8),
-    0 0 20px rgba(168, 85, 247, 0.4);
+    0 24px 50px rgba(0, 0, 0, 0.95),
+    0 0 25px rgba(203, 213, 225, 0.3);
+  border-radius: 10px;
 }
 
 .tour-card-flyer-wrapper:hover .tour-card-flyer-placeholder svg {
@@ -1605,12 +1182,12 @@ nextjs-hud,
 
 @keyframes glowPulse {
   0% {
-    filter: blur(12px);
-    opacity: 0.6;
+    filter: blur(10px);
+    opacity: 0.4;
   }
   100% {
-    filter: blur(22px);
-    opacity: 0.95;
+    filter: blur(16px);
+    opacity: 0.7;
   }
 }
 
@@ -2045,39 +1622,140 @@ nextjs-hud,
   margin-bottom: 0;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOUR SECTION — "MORE EVENTS" CTA BUTTON (SIGNATURE HOME PAGE GLASS STYLE)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes tourBtnGlassFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 .tour-more-events-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 36px;
-  border-radius: 12px;
-  font-family: var(--font-outfit), var(--font-sans), sans-serif;
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  padding: 2.5px;
+  border-radius: 9999px;
   text-decoration: none;
-  color: #fff;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   cursor: pointer;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.75),
+    0 0 20px rgba(216, 180, 254, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tour-more-events-btn:hover {
-  transform: translateY(-3px) scale(1.03);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 14px 40px rgba(0, 0, 0, 0.85),
+    0 0 35px rgba(216, 180, 254, 0.65),
+    0 0 60px rgba(168, 85, 247, 0.35);
+}
+
+.tour-more-events-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.tour-more-events-border {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.05) 100%
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(216, 180, 254, 0.7) 22%,
+    rgba(148, 163, 184, 0.35) 45%,
+    rgba(255, 255, 255, 0.85) 60%,
+    rgba(192, 132, 252, 0.8) 80%,
+    rgba(255, 255, 255, 0.95) 100%
   );
-  border-color: rgba(255, 255, 255, 0.45);
-  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.08), 0 4px 15px rgba(0, 0, 0, 0.5);
+  background-size: 240% 240%;
+  animation: tourBtnGlassFlow 4s ease-in-out infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2.5px;
+  pointer-events: none;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.tour-more-events-btn:hover .tour-more-events-border {
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(244, 180, 260, 0.95) 25%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(216, 180, 254, 0.95) 75%,
+    #ffffff 100%
+  );
+  background-size: 240% 240%;
+  animation: tourBtnGlassFlow 2s linear infinite;
+}
+
+.tour-more-events-inner {
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  height: 44px;
+  padding: 0 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgba(24, 16, 36, 0.92) 0%,
+    rgba(14, 14, 22, 0.96) 60%,
+    rgba(8, 8, 12, 0.98) 100%
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .tour-more-events-inner {
+    height: 48px;
+    padding: 0 40px;
+  }
+}
+
+.tour-more-events-btn:hover .tour-more-events-inner {
+  background: linear-gradient(
+    135deg,
+    rgba(38, 22, 60, 0.94) 0%,
+    rgba(20, 18, 32, 0.97) 60%,
+    rgba(14, 12, 20, 0.99) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.tour-more-events-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 15%,
+    rgba(216, 180, 254, 0.15) 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(216, 180, 254, 0.15) 65%,
+    transparent 85%
+  );
+  pointer-events: none;
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+
+.tour-more-events-btn:hover .tour-more-events-sheen {
+  opacity: 1;
 }
 
 
@@ -2136,67 +1814,290 @@ nextjs-hud,
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media (max-width: 767px) {
-  .tour-card {
-    flex-wrap: wrap;
-    gap: 14px;
-    padding: 24px 16px;
+  .tour-section-v2 {
+    overflow: clip;
+    background-color: #050505;
   }
-  
+
+  .tour-video-bg {
+    overflow: visible;
+  }
+
+  .tour-video-element {
+    position: sticky;
+    top: 12vh;
+    width: 100%;
+    height: 60vh;
+    object-fit: cover;
+    object-position: center 32%;
+    filter: brightness(0.68) contrast(1.06) saturate(0.95);
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      #000 18%,
+      #000 82%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      #000 18%,
+      #000 82%,
+      transparent 100%
+    );
+  }
+
+  .tour-content-wrapper {
+    padding: 68px 18px 64px;
+    box-sizing: border-box;
+  }
+
+  .tour-title-block {
+    margin-bottom: 30px;
+  }
+
+  .tour-subtitle-label {
+    font-size: 10px;
+    letter-spacing: 0.34em;
+    margin-bottom: 6px;
+  }
+
+  .tour-main-title {
+    font-size: clamp(23px, 6.8vw, 30px);
+    gap: 0.28em;
+    letter-spacing: 0.04em;
+  }
+
+  .tour-title-divider {
+    width: 60px;
+    margin-top: 14px;
+  }
+
+  .tour-cards-list {
+    gap: 14px;
+  }
+
+  .tour-card {
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    column-gap: 11px;
+    row-gap: 10px;
+    align-items: start;
+    padding: 14px;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 16px;
+    background: linear-gradient(
+      145deg,
+      rgba(16, 18, 26, 0.72) 0%,
+      rgba(8, 10, 15, 0.82) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    box-shadow:
+      0 10px 28px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .tour-card:hover {
+    transform: none;
+  }
+
   .tour-card-vert-divider {
     display: none;
   }
-  
+
   .tour-card-date {
-    min-width: 68px;
-    height: 76px;
-  }
-  
-  .tour-card-date-num {
-    font-size: 30px;
-  }
-  
-  .tour-card-info {
-    flex: 1;
-    min-width: calc(100% - 90px);
-  }
-  
-  .tour-card-festival {
-    font-size: 20px;
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 50px;
+    width: 50px;
+    height: 58px;
+    border-radius: 12px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
   }
 
-  .tour-card-action {
-    width: 100%;
-    justify-content: flex-start;
-    margin-top: 6px;
+  .tour-card-date::after {
+    display: none;
   }
-  
-  .tour-card-right-block {
+
+  .tour-card-date-num {
+    font-size: 22px;
+  }
+
+  .tour-card-date-month {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+  .tour-card-info {
+    grid-column: 2;
+    grid-row: 1;
     width: 100%;
-    flex-direction: row;
+    min-width: 0;
+    gap: 5px;
+  }
+
+  .tour-card-info-top {
+    display: flex;
+    align-items: center;
     justify-content: flex-start;
-    gap: 14px;
-    margin-top: 4px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tour-card-festival {
+    font-size: 14.5px;
+    line-height: 1.22;
+    letter-spacing: 0.03em;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  .tour-status-badge {
+    padding: 3px 8px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .tour-status-badge--glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .tour-card-meta {
+    gap: 5px;
+    row-gap: 3px;
+    align-items: center;
+  }
+
+  .tour-card-flag-img {
+    width: 17px;
+    height: 12px;
+    border-radius: 2px;
+    border-width: 1px;
+  }
+
+  .tour-card-venue {
+    font-size: 11px;
+    text-underline-offset: 3px;
+  }
+
+  .tour-card-separator {
+    font-size: 11px;
+  }
+
+  .tour-card-city {
+    font-size: 11px;
+  }
+
+  .tour-card-country {
+    font-size: 11px;
+  }
+
+  .tour-card-lineup {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 1px;
+  }
+
+  .tour-card-lineup-label {
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+  }
+
+  .tour-card-lineup-text {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .tour-card-right-block {
+    display: contents;
   }
 
   .tour-card-flyer-wrapper {
-    width: 48px;
-    height: 62px;
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: center;
+    width: 74px;
+    height: 102px;
+    flex-shrink: 0;
+  }
+
+  .tour-card-flyer-img {
+    border-radius: 10px;
+  }
+
+  .tour-card-action {
+    grid-column: 2;
+    grid-row: 2;
+    width: fit-content;
+    min-width: 0;
+    margin-top: 2px;
+    display: flex;
+    justify-content: flex-start;
   }
 
   .tour-card-ticket-btn {
-    width: auto;
-    flex: 1;
+    width: fit-content;
+    flex: 0 0 auto;
+    height: 33px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
     justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
   }
-  
-  .tour-card-lineup {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 3px;
+
+  .tour-card-arrow {
+    width: 14px;
+    height: 14px;
   }
-  
-  .tour-card-meta {
-    gap: 8px;
+
+  .tour-card-sold-label {
+    width: fit-content;
+    text-align: center;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 10.5px;
+    box-sizing: border-box;
+  }
+
+  .tour-footer {
+    margin-top: 32px;
+    padding-top: 26px;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .tour-card {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    column-gap: 14px;
+    padding: 16px;
+  }
+
+  .tour-card-date {
+    min-width: 56px;
+    width: 56px;
+    height: 64px;
+  }
+
+  .tour-card-flyer-wrapper {
+    width: 90px;
+    height: 118px;
   }
 }
 
@@ -2477,4 +2378,27 @@ nextjs-hud,
     0 0 25px rgba(255, 255, 255, 0.5),
     0 0 50px rgba(200, 220, 255, 0.3);
 }
+
+/* ── Eliminate all browser video overlay icons, PiP popouts, and native play badges ── */
+video::-webkit-media-controls {
+  display: none !important;
+}
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+video::-webkit-media-controls-picture-in-picture-button {
+  display: none !important;
+}
+
 

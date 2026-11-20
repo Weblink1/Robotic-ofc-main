@@ -12,6 +12,8 @@ import {
 } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
+import { smoothScrollTo } from "@/app/components/common/smooth-scroll"
+import { useBookingModal } from "@/app/components/common/booking-modal"
 
 interface HeroCursorLensProps {
   parallaxStrength?: number
@@ -175,24 +177,44 @@ export const HeroSection = ({
   parallaxStrength = 3,
   previewCursor = false
 }: HeroCursorLensProps) => {
+  const { openBookingModal } = useBookingModal()
   const containerRef = useRef<HTMLDivElement>(null)
-  const [isHovering, setIsHovering] = useState(false)
+  const colRefs = useRef<(HTMLDivElement | null)[]>([])
+  const colActiveRef = useRef<boolean[]>(new Array(BEAT_COLUMNS.length).fill(false))
+  const isHoveringRef = useRef(false)
+  const boundsRef = useRef({ left: 0, top: 0, width: 1280, height: 800 })
   const [mounted, setMounted] = useState(false)
   const [phaseIndex, setPhaseIndex] = useState(0)
 
   useEffect(() => {
     setMounted(true)
+    const updateBounds = () => {
+      if (!containerRef.current) return
+      const r = containerRef.current.getBoundingClientRect()
+      boundsRef.current = {
+        left: r.left,
+        top: r.top,
+        width: r.width || 1280,
+        height: r.height || 800,
+      }
+    }
+    updateBounds()
+    window.addEventListener("resize", updateBounds, { passive: true })
+
     const interval = setInterval(() => {
       setPhaseIndex((prev) => (prev + 1) % PHASES.length)
     }, 10000)
-    return () => clearInterval(interval)
+    return () => {
+      window.removeEventListener("resize", updateBounds)
+      clearInterval(interval)
+    }
   }, [])
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   const mouseXRatio = useMotionValue(0)
   const mouseYRatio = useMotionValue(0)
-  const smooth = { stiffness: 240, damping: 34 }
+  const smooth = { stiffness: 320, damping: 30, mass: 0.5 }
   const smoothX = useSpring(mouseXRatio, smooth)
   const smoothY = useSpring(mouseYRatio, smooth)
   const baseX = useTransform(smoothX, [-1, 1], [parallaxStrength, -parallaxStrength])
@@ -207,78 +229,108 @@ export const HeroSection = ({
     mouseYRatio.set((y / height) * 2 - 1)
   }
 
-  const updateColumnReactivity = (pointerX: number) => {
-    if (!containerRef.current) return
-    const containerWidth = containerRef.current.clientWidth
-    const colContainers = containerRef.current.querySelectorAll<HTMLDivElement>(".robotic-beat-column-container")
-    if (!colContainers) return
+  const updateColumnReactivity = (pointerX: number, containerWidth: number) => {
+    const cols = colRefs.current
+    const activeFlags = colActiveRef.current
+    const radius = 320 // Expanded radius for cursor proximity detection
 
-    colContainers.forEach((col, idx) => {
-      const colLeftPercent = BEAT_COLUMNS[idx].left
-      const colX = (colLeftPercent / 100) * containerWidth
+    for (let idx = 0; idx < BEAT_COLUMNS.length; idx++) {
+      const col = cols[idx]
+      if (!col) continue
+      const colX = (BEAT_COLUMNS[idx].left / 100) * containerWidth
       const distX = Math.abs(pointerX - colX)
-      const radius = 320 // Expanded radius for cursor proximity detection
-      
+
       if (distX < radius) {
         const force = 1 - distX / radius
-        const easeForce = Math.sin(force * Math.PI / 2) // Sine ease-out curve for snappy, smooth responsiveness
-        const lift = easeForce * 55 // Lift columns higher
-        const scale = 1 + easeForce * 0.22 // Scale columns larger
-        col.style.transform = `translateY(-${lift}px) scale(${scale})`
-      } else {
-        col.style.transform = `translateY(0px) scale(1)`
+        const easeForce = Math.sin((force * Math.PI) / 2)
+        const lift = (easeForce * 55).toFixed(1)
+        const scale = (1 + easeForce * 0.22).toFixed(3)
+        col.style.transform = `translate3d(0, -${lift}px, 0) scale(${scale})`
+        activeFlags[idx] = true
+      } else if (activeFlags[idx]) {
+        col.style.transform = "translate3d(0, 0px, 0) scale(1)"
+        activeFlags[idx] = false
       }
-    })
+    }
+  }
+
+  const handlePointerEnter = (event: ReactPointerEvent<HTMLDivElement>) => {
+    isHoveringRef.current = true
+    const r = event.currentTarget.getBoundingClientRect()
+    boundsRef.current = {
+      left: r.left,
+      top: r.top,
+      width: r.width || 1280,
+      height: r.height || 800,
+    }
   }
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    syncPointer(x, y, rect.width, rect.height)
-    setIsHovering(true)
-    updateColumnReactivity(x)
+    if (window.scrollY > boundsRef.current.height * 0.35) return
+    isHoveringRef.current = true
+    const { left, top, width, height } = boundsRef.current
+    const x = event.clientX - left
+    const y = event.clientY - top
+    syncPointer(x, y, width, height)
+    updateColumnReactivity(x, width)
   }
 
   const handlePointerLeave = () => {
-    setIsHovering(false)
-    if (containerRef.current) {
-      const colContainers = containerRef.current.querySelectorAll<HTMLDivElement>(".robotic-beat-column-container")
-      colContainers.forEach((col) => {
-        col.style.transform = `translateY(0px) scale(1)`
-      })
+    isHoveringRef.current = false
+    const cols = colRefs.current
+    const activeFlags = colActiveRef.current
+    for (let idx = 0; idx < cols.length; idx++) {
+      const col = cols[idx]
+      if (col && activeFlags[idx]) {
+        col.style.transform = "translate3d(0, 0px, 0) scale(1)"
+        activeFlags[idx] = false
+      }
     }
   }
 
+  // On touch devices the idle "auto-cursor" sweep only runs while the hero is at rest;
+  // as soon as the user scrolls past the initial hero view it stops so scrolling stays 100% fluid.
+  const hasFinePointerRef = useRef(true)
+  useEffect(() => {
+    hasFinePointerRef.current = window.matchMedia("(pointer: fine)").matches
+  }, [])
+
   useAnimationFrame((time) => {
-    if (!containerRef.current || isHovering || previewCursor) {
+    if (!containerRef.current || isHoveringRef.current || previewCursor) {
       return
     }
+    // Stop RAF animation immediately during scroll so hero animations never compete with scroll compositing
+    const scrollLimit = hasFinePointerRef.current ? 25 : 6
+    if (window.scrollY > scrollLimit) return
 
-    const width = containerRef.current.clientWidth
-    const height = containerRef.current.clientHeight
+    const { width, height } = boundsRef.current
     const x = width * (0.5 + Math.sin(time * 0.00042) * 0.22)
     const y = height * (0.45 + Math.cos(time * 0.00054) * 0.13)
 
     syncPointer(x, y, width, height)
-    updateColumnReactivity(x)
+    updateColumnReactivity(x, width)
   })
 
   return (
     <section
       ref={containerRef}
+      onPointerEnter={handlePointerEnter}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#050505] text-white"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_72%,rgba(124,58,237,0.165)_0%,transparent_75%),linear-gradient(135deg,rgba(214,171,72,0.09)_0%,transparent_35%),linear-gradient(225deg,rgba(23,115,73,0.09)_0%,transparent_35%),#050505]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_72%,rgba(124,58,237,0.14)_0%,transparent_75%),linear-gradient(135deg,rgba(214,171,72,0.09)_0%,transparent_35%),linear-gradient(225deg,rgba(23,115,73,0.09)_0%,transparent_35%),#050505]" />
       <div data-hero-grid className="absolute inset-0 opacity-45 [background-image:linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:42px_42px]" />
 
-      {/* BeatCubes - shifted to top-[30%] on mobile / top-[50%] on desktop, and opacity-80 on mobile / opacity-60 on desktop for visibility */}
+      {/* BeatCubes - outer wrapper stays in DOM so GSAP transition can fade [data-hero-beats] */}
+      <div
+        data-hero-beats
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[30%] md:top-[50%] z-0 overflow-hidden opacity-[0.78] md:opacity-[0.78]"
+      >
+        <div className="pointer-events-none absolute inset-0 z-10 bg-black/[0.04]" />
       {mounted && (
         <motion.div 
-          data-hero-beats
-          className="pointer-events-none absolute inset-x-0 bottom-0 top-[30%] md:top-[50%] z-0 overflow-hidden opacity-[0.82] md:opacity-[0.82]"
+          className="w-full h-full"
           style={{
             x: beatX,
             y: beatY
@@ -298,9 +350,12 @@ export const HeroSection = ({
               repeatType: "mirror"
             }}
           >
-          {BEAT_COLUMNS.map((column) => (
+          {BEAT_COLUMNS.map((column, idx) => (
             <div
               key={column.id}
+              ref={(el) => {
+                colRefs.current[idx] = el
+              }}
               className="robotic-beat-column-container"
               style={{ left: `${column.left}%` }}
             >
@@ -336,9 +391,10 @@ export const HeroSection = ({
           </motion.div>
         </motion.div>
       )}
+      </div>
 
       {/* Centered portrait stage - shifted down with padding to position him lower on screen */}
-      <div data-hero-portrait-zone className="absolute inset-0 z-10 flex items-center justify-center pt-[56vh] md:pt-[69vh]">
+      <div data-hero-portrait-zone className="absolute inset-0 z-10 flex items-center justify-center pt-[59vh] md:pt-[72vh]">
           <motion.div
             className="robotic-portrait-stage scale-[1.6] md:scale-[1.25]"
             style={{
@@ -353,7 +409,7 @@ export const HeroSection = ({
                 text={PHASES[phaseIndex].textMobile}
                 color={PHASES[phaseIndex].color}
                 shadow={PHASES[phaseIndex].shadow}
-                opacity={0.85}
+                opacity={0.98}
                 className="font-brier font-black text-[11px] uppercase tracking-[0.08em] block"
               />
             </div>
@@ -375,7 +431,7 @@ export const HeroSection = ({
               }}
             >
             {/* Music 1 (Replaced with Music 5) */}
-            <div className="absolute top-[10%] md:top-[7.4%] left-[16%] md:-left-[10%] w-[16%] md:w-[24%] aspect-square opacity-[0.35] md:opacity-[0.24] rotate-[-12deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
+            <div className="absolute top-[10%] md:top-[7.4%] left-[16%] md:-left-[10%] w-[16%] md:w-[24%] aspect-square opacity-[0.48] md:opacity-[0.37] rotate-[-12deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
               <Image 
                 src="/assets/robotic/hero/music-5.png" 
                 alt="" 
@@ -385,7 +441,7 @@ export const HeroSection = ({
               />
             </div>
             {/* Music 2 */}
-            <div className="absolute top-[34%] md:top-[42%] left-[12%] md:-left-[12%] w-[14%] md:w-[22%] aspect-square opacity-[0.35] md:opacity-[0.24] rotate-[15deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
+            <div className="absolute top-[34%] md:top-[42%] left-[12%] md:-left-[12%] w-[14%] md:w-[22%] aspect-square opacity-[0.48] md:opacity-[0.37] rotate-[15deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
               <Image 
                 src="/assets/robotic/hero/music-2.png" 
                 alt="" 
@@ -395,7 +451,7 @@ export const HeroSection = ({
               />
             </div>
             {/* Music 3 */}
-            <div className="absolute top-[9%] md:top-[6.4%] right-[18%] md:-right-[6%] w-[15%] md:w-[23%] aspect-square opacity-[0.35] md:opacity-[0.24] rotate-[10deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
+            <div className="absolute top-[9%] md:top-[6.4%] right-[18%] md:-right-[6%] w-[15%] md:w-[23%] aspect-square opacity-[0.48] md:opacity-[0.37] rotate-[10deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
               <Image 
                 src="/assets/robotic/hero/music-3.png" 
                 alt="" 
@@ -405,7 +461,7 @@ export const HeroSection = ({
               />
             </div>
             {/* Music 7 (In Music 4 Position) */}
-            <div className="absolute top-[32%] md:top-[40%] right-[12%] md:-right-[14%] w-[14%] md:w-[22%] aspect-square opacity-[0.35] md:opacity-[0.24] rotate-[-8deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
+            <div className="absolute top-[32%] md:top-[40%] right-[12%] md:-right-[14%] w-[14%] md:w-[22%] aspect-square opacity-[0.48] md:opacity-[0.37] rotate-[-8deg] rounded-2xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center z-10">
               <Image 
                 src="/assets/robotic/hero/music-7.png" 
                 alt="" 
@@ -422,7 +478,7 @@ export const HeroSection = ({
                 text={PHASES[phaseIndex].textLeft}
                 color={PHASES[phaseIndex].color}
                 shadow={PHASES[phaseIndex].shadow}
-                opacity={0.25}
+                opacity={0.38}
                 className="font-brier md:text-[36px] lg:text-[46px] uppercase tracking-[0.05em] block"
               />
             </div>
@@ -431,20 +487,20 @@ export const HeroSection = ({
                 text={PHASES[phaseIndex].textRight}
                 color={PHASES[phaseIndex].color}
                 shadow={PHASES[phaseIndex].shadow}
-                opacity={0.25}
+                opacity={0.38}
                 className="font-brier md:text-[36px] lg:text-[46px] uppercase tracking-[0.05em] block"
               />
             </div>
 
 
   
-            {/* Inner image container with custom subtle dancing/swaying motion */}
+            {/* Inner image container with custom subtle dancing/swaying motion
+                (no rotation — rotating the layer resamples the portrait every frame and softens it) */}
             <motion.div
               className="w-full h-full relative z-10"
               animate={{
                 y: [0, -2, 0, 1, 0],
-                x: [0, 1, 0, -1, 0],
-                rotate: [0, 0.3, 0, -0.3, 0]
+                x: [0, 1, 0, -1, 0]
               }}
               transition={{
                 duration: 7.5,
@@ -453,13 +509,22 @@ export const HeroSection = ({
                 repeatType: "mirror"
               }}
             >
+              {/* Hardware-accelerated ambient purple aura behind portrait */}
+              <div 
+                className="pointer-events-none absolute inset-[-10%] -z-10 rounded-full opacity-[0.52] mix-blend-screen"
+                style={{
+                  background: "radial-gradient(ellipse at 50% 50%, rgba(216, 180, 254, 0.30) 0%, rgba(124, 58, 237, 0.16) 45%, transparent 75%)"
+                }}
+              />
 
               <Image
                 src="/assets/robotic/hero/robotic-natural-cutout.webp"
                 alt="Robotic ofc portrait"
                 width={2400}
                 height={2700}
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 1200px"
+                // Stage is scaled 1.6x (mobile) / 1.25x (desktop), so request enough pixels for the scaled size
+                sizes="(max-width: 767px) 150vw, (max-width: 1279px) 85vw, min(58vw, 1000px)"
+                quality={100}
                 priority
                 className="robotic-portrait-image"
                 draggable={false}
@@ -472,7 +537,7 @@ export const HeroSection = ({
       <div data-hero-vignette className="pointer-events-none absolute inset-0 z-20 bg-[radial-gradient(circle_at_50%_70%,transparent_50%,rgba(5,5,5,0.35)_75%,rgba(5,5,5,1)_98%)]" />
 
       {/* Right-side CTA block */}
-      <div data-hero-cta className="absolute top-[75vh] right-6 md:right-72 z-30 flex flex-col gap-4 items-center">
+      <div data-hero-cta className="absolute top-[75vh] right-6 md:right-16 lg:right-48 xl:right-72 z-50 flex flex-col gap-4 items-center">
         {/* Outer premium dark liquid glass frame */}
         <div className="group relative p-[3px] md:p-[3.5px] rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.75),0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-300 hover:scale-105">
           {/* Animated liquid metallic dark border */}
@@ -530,51 +595,39 @@ export const HeroSection = ({
             }
           `}</style>
           
-          {/* Inner white button - untouched styling */}
-          <Link
-            href="/contact"
-            className="relative z-10 overflow-hidden h-[38px] md:h-[45px] px-4 md:px-6 flex items-center justify-center rounded-full bg-white/85 backdrop-blur-md shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.8)] transition-all duration-300 group-hover:bg-white/95 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.6)] cursor-pointer"
+          {/* Inner white button - clean unclipped typography */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log("[HERO] Book Robotic button clicked!")
+              openBookingModal()
+            }}
+            data-action="open-booking"
+            className="relative z-10 h-[38px] md:h-[45px] px-5 md:px-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.8)] transition-all duration-300 group-hover:bg-white group-hover:shadow-[0_0_20px_rgba(255,255,255,0.7)] cursor-pointer"
           >
-            <div
-              className="book-robotic-btn relative z-10 flex items-center justify-center overflow-hidden"
-              style={{
-                width: "calc(var(--btn-logo-w) * 630 / 666)",
-                height: "calc(var(--btn-logo-w) * 64 / 666)",
-              }}
-            >
-              <Image
-                src="/assets/robotic/logo/BOOK ROBOTIC LOG.png"
-                alt="Book Robotic"
-                width={666}
-                height={375}
-                quality={100}
-                priority
-                className="absolute max-w-none transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  width: "var(--btn-logo-w)",
-                  height: "calc(var(--btn-logo-w) * 375 / 666)",
-                  left: "calc(var(--btn-logo-w) * -22 / 666)",
-                  top: "calc(var(--btn-logo-w) * -149 / 666)",
-                }}
-              />
-            </div>
-          </Link>
+            <Image
+              src="/assets/robotic/logo/book-robotic-clean.png"
+              alt="Book Robotic"
+              width={628}
+              height={64}
+              quality={100}
+              priority
+              className="h-[14px] md:h-[17px] w-auto object-contain select-none"
+            />
+          </button>
         </div>
-        <button
-          onClick={() => document.getElementById("music")?.scrollIntoView({ behavior: "smooth" })}
-          className="group relative overflow-hidden h-[38px] md:h-[46px] px-[16px] md:px-[24px] flex items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(30,14,48,0.65),rgba(12,6,20,0.8))] backdrop-blur-xl shadow-[0_0_16px_rgba(168,85,247,0.25),0_4px_16px_rgba(0,0,0,0.7)] transition-all duration-300 hover:scale-105 hover:bg-[linear-gradient(135deg,rgba(50,22,80,0.8),rgba(18,8,30,0.9))] hover:shadow-[0_0_25px_rgba(216,180,254,0.5)] cursor-pointer"
+        <Link
+          href="/more-music"
+          className="group relative h-[38px] md:h-[46px] px-5 md:px-7 flex items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(30,14,48,0.65),rgba(12,6,20,0.8))] backdrop-blur-xl shadow-[0_0_16px_rgba(168,85,247,0.25),0_4px_16px_rgba(0,0,0,0.7)] transition-all duration-300 hover:scale-105 hover:bg-[linear-gradient(135deg,rgba(50,22,80,0.8),rgba(18,8,30,0.9))] hover:shadow-[0_0_25px_rgba(216,180,254,0.5)] cursor-pointer"
         >
           {/* Thick liquid glass border */}
           <div className="liquid-glass-border-container" />
           
           {/* Static liquid glass reflection layers */}
-          <div className="absolute inset-0 z-0 bg-[linear-gradient(120deg,transparent_10%,rgba(216,180,254,0.18)_30%,rgba(255,255,255,0.25)_50%,rgba(216,180,254,0.12)_70%,transparent_90%)] pointer-events-none" />
-          <div className="absolute inset-0 z-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.18)_0%,transparent_60%)] pointer-events-none mix-blend-overlay" />
+          <div className="absolute inset-0 z-0 rounded-full bg-[linear-gradient(120deg,transparent_10%,rgba(216,180,254,0.18)_30%,rgba(255,255,255,0.25)_50%,rgba(216,180,254,0.12)_70%,transparent_90%)] pointer-events-none" />
+          <div className="absolute inset-0 z-0 rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.18)_0%,transparent_60%)] pointer-events-none mix-blend-overlay" />
 
           <style>{`
-            .listen-now-btn {
-              --btn-listen-w: 128px;
-            }
             @keyframes glass-flow {
               0% { background-position: 0% 50%; }
               50% { background-position: 100% 50%; }
@@ -609,44 +662,23 @@ export const HeroSection = ({
                 rgba(244, 180, 260, 0.9) 25%, 
                 rgba(255, 255, 255, 0.6) 50%, 
                 rgba(216, 180, 254, 0.95) 75%, 
-                rgba(255, 255, 255, 1) 100%
+                rgba(255, 255, 1) 100%
               );
               background-size: 200% 200%;
               animation: glass-flow 2s linear infinite;
             }
-            @media (min-width: 768px) {
-              .listen-now-btn {
-                --btn-listen-w: 160px;
-              }
-            }
           `}</style>
-          <div
-            className="listen-now-btn relative z-10 flex items-center justify-center overflow-hidden"
-            style={{
-              width: "calc(var(--btn-listen-w) * 817 / 866)",
-              height: "calc(var(--btn-listen-w) * 107 / 866)",
-            }}
-          >
-            <Image
-              src="/assets/robotic/logo/Listen Now Logo.png"
-              alt="Listen Now"
-              width={866}
-              height={288}
-              quality={100}
-              priority
-              className="absolute max-w-none transition-all duration-300 group-hover:scale-105 brightness-[1.15] contrast-[1.05] drop-shadow-[0_0_6px_rgba(255,255,255,0.4)] group-hover:brightness-[1.25] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]"
-              style={{
-                width: "var(--btn-listen-w)",
-                height: "calc(var(--btn-listen-w) * 288 / 866)",
-                left: "calc(var(--btn-listen-w) * -24 / 866)",
-                top: "calc(var(--btn-listen-w) * -89 / 866)",
-              }}
-            />
-          </div>
-        </button>
-      </div>
 
-      <div className="relative z-40 flex min-h-dvh w-full flex-col justify-end px-5 pb-7 pt-32 md:px-8 md:pb-10">
+          <Image
+            src="/assets/robotic/logo/listen-now-clean.png"
+            alt="Listen Now"
+            width={817}
+            height={107}
+            quality={100}
+            priority
+            className="relative z-10 h-[14px] md:h-[17px] w-auto object-contain brightness-[1.15] contrast-[1.05] drop-shadow-[0_0_6px_rgba(255,255,255,0.4)] group-hover:brightness-[1.25] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] select-none transition-all duration-300"
+          />
+        </Link>
       </div>
     </section>
   )

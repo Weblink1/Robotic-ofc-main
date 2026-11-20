@@ -1,5 +1,5 @@
 "use client"
-import { useRef, useEffect, useState, useCallback } from "react"
+import { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { 
@@ -14,117 +14,79 @@ import {
   FaVolumeUp,
   FaVolumeMute
 } from "react-icons/fa"
-
-const RELEASES = [
-  {
-    title: "AI ZENZE",
-    subtitle: "REMIX ROBOTIC OFC",
-    artist: "DJ Malvado ft. Eddy Tussa",
-    year: "2026",
-    badge: "NEW REMIX",
-    cover: "/assests/Music icons labels/AI ZENZE, 2026.png",
-    links: { 
-      spotify: "https://open.spotify.com", 
-      apple: "https://music.apple.com", 
-      youtube: "https://youtube.com", 
-      soundcloud: "https://soundcloud.com" 
-    }
-  },
-  {
-    title: "ECHOES OF HEALING",
-    subtitle: "INDE LENDLELA",
-    artist: "Issa Sisdoh",
-    year: "2025",
-    badge: "ORIGINAL EP",
-    cover: "/assests/Music icons labels/INDE LENDLELA, 2025.png",
-    links: { 
-      spotify: "https://open.spotify.com", 
-      apple: "https://music.apple.com", 
-      youtube: "https://youtube.com", 
-      soundcloud: "https://soundcloud.com" 
-    }
-  },
-  {
-    title: "MY DRUM EP",
-    subtitle: "EVOLUTION - EXTENDED MIX",
-    artist: "Robotic OFC, DJ Satelite & DJ Galio",
-    year: "2026",
-    badge: "CLUB MIX",
-    cover: "/assests/Music icons labels/EVOLUTION - EXTENDED MIX, 2026.png",
-    links: { 
-      spotify: "https://open.spotify.com", 
-      apple: "https://music.apple.com", 
-      youtube: "https://youtube.com", 
-      soundcloud: "https://soundcloud.com" 
-    }
-  },
-  {
-    title: "ELLA PT. II",
-    subtitle: "IYO",
-    artist: "Robotic OFC",
-    year: "2026",
-    badge: "FEATURED",
-    cover: "/assests/Music icons labels/IYO, 2026.png",
-    links: { 
-      spotify: "https://open.spotify.com", 
-      apple: "https://music.apple.com", 
-      youtube: "https://youtube.com", 
-      soundcloud: "https://soundcloud.com" 
-    }
-  },
-  {
-    title: "NOW-HERE TO BE FOUND",
-    subtitle: "ONE MORE TIME",
-    artist: "Doctah Jrs",
-    year: "2025",
-    badge: "EP RELEASE",
-    cover: "/assests/Music icons labels/ONE MORE TIME, 2025.png",
-    links: { 
-      spotify: "https://open.spotify.com", 
-      apple: "https://music.apple.com", 
-      youtube: "https://youtube.com", 
-      soundcloud: "https://soundcloud.com" 
-    }
-  },
-  {
-    title: "ELLA",
-    subtitle: "CLUB MIX",
-    artist: "Robotic OFC",
-    year: "2024",
-    badge: "SPECIAL MIX",
-    cover: "/assests/Music icons labels/ELLA - CLUB MIX, 2024.png",
-    links: { 
-      spotify: "https://open.spotify.com", 
-      apple: "https://music.apple.com", 
-      youtube: "https://youtube.com", 
-      soundcloud: "https://soundcloud.com" 
-    }
-  }
-]
+import { useSiteData, DEFAULT_MUSIC_RELEASES } from "@/app/lib/site-data"
+import { snippetEngine, formatSnippetTime } from "@/app/lib/audio-snippet"
 
 export const MusicSection = () => {
+  const { data } = useSiteData()
+  const RELEASES = useMemo(() => {
+    const featured = data.musicReleases.filter((r) => r.featured !== false)
+    if (featured.length > 0) return featured
+    return data.musicReleases.length > 0 ? data.musicReleases.slice(0, 6) : DEFAULT_MUSIC_RELEASES.slice(0, 6)
+  }, [data.musicReleases])
+
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [progress, setProgress] = useState(0)
   const [currentTime, setCurrentTime] = useState("0:00")
-  const [durationTime, setDurationTime] = useState("0:45")
+  const [durationTime, setDurationTime] = useState("0:35")
+  const [snippetEnded, setSnippetEnded] = useState(false)
   const [isTouched, setIsTouched] = useState(false)
+  const [viewportWidth, setViewportWidth] = useState(1280)
 
-  const audioRef = useRef<HTMLAudioElement | null>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
   const touchStartXRef = useRef<number | null>(null)
 
-  // Navigation callbacks
-  const nextTrack = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % RELEASES.length)
-    setIsTouched(false)
+  useEffect(() => {
+    const updateViewport = () => setViewportWidth(window.innerWidth)
+    updateViewport()
+    window.addEventListener("resize", updateViewport, { passive: true })
+    return () => window.removeEventListener("resize", updateViewport)
   }, [])
 
+  const safeActiveIndex = activeIndex >= RELEASES.length ? 0 : activeIndex
+  const activeRelease = RELEASES[safeActiveIndex] || DEFAULT_MUSIC_RELEASES[0]
+
+  // Subscribe to snippetEngine playback updates
+  useEffect(() => {
+    const unsub = snippetEngine.subscribe((state) => {
+      setIsPlaying(state.isPlaying)
+      const dur = state.duration > 0 ? state.duration : 35
+      const prog = Math.min(100, (state.currentTime / dur) * 100)
+      setProgress(prog)
+      setCurrentTime(formatSnippetTime(state.currentTime))
+      setDurationTime(formatSnippetTime(dur))
+      if (state.ended) {
+        setSnippetEnded(true)
+      }
+    })
+    return () => {
+      unsub()
+    }
+  }, [])
+
+  // Navigation callbacks
+  const nextTrack = useCallback(() => {
+    setSnippetEnded(false)
+    setActiveIndex((prev) => (prev + 1) % RELEASES.length)
+    setIsTouched(false)
+  }, [RELEASES.length])
+
   const prevTrack = useCallback(() => {
+    setSnippetEnded(false)
     setActiveIndex((prev) => (prev - 1 + RELEASES.length) % RELEASES.length)
     setIsTouched(false)
-  }, [])
+  }, [RELEASES.length])
+
+  const togglePlay = useCallback(() => {
+    setSnippetEnded(false)
+    if (isPlaying) {
+      snippetEngine.pause()
+    } else {
+      snippetEngine.play(activeRelease?.snippetUrl, activeRelease?.id || safeActiveIndex + 1)
+    }
+  }, [isPlaying, activeRelease, safeActiveIndex])
 
   // Keyboard navigation when section is near viewport
   useEffect(() => {
@@ -146,73 +108,25 @@ export const MusicSection = () => {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [nextTrack, prevTrack])
+  }, [nextTrack, prevTrack, togglePlay])
 
   // Reset/Restart audio when track changes if already playing
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (isPlaying) {
-      audio.currentTime = 0
-      audio.play().catch(() => {})
+    if (isPlaying && activeRelease) {
+      snippetEngine.play(activeRelease.snippetUrl, activeRelease.id || safeActiveIndex + 1)
     }
-  }, [activeIndex])
-
-  const togglePlay = () => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (isPlaying) {
-      audio.pause()
-      setIsPlaying(false)
-    } else {
-      audio.play().then(() => {
-        setIsPlaying(true)
-      }).catch(() => {
-        setIsPlaying(true)
-      })
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeActiveIndex])
 
   const toggleMute = () => {
-    if (!audioRef.current) return
-    audioRef.current.muted = !isMuted
     setIsMuted(!isMuted)
   }
 
-  // Audio time update handler
-  const handleTimeUpdate = () => {
-    const audio = audioRef.current
-    if (!audio || !audio.duration) return
-
-    const prog = (audio.currentTime / audio.duration) * 100
-    setProgress(prog)
-
-    const format = (sec: number) => {
-      const m = Math.floor(sec / 60)
-      const s = Math.floor(sec % 60)
-      return `${m}:${s < 10 ? "0" : ""}${s}`
-    }
-
-    setCurrentTime(format(audio.currentTime))
-    setDurationTime(format(audio.duration))
-  }
-
-  const handleAudioEnded = () => {
-    setIsPlaying(false)
-    setProgress(0)
-    setCurrentTime("0:00")
-  }
-
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const audio = audioRef.current
-    if (!audio || !audio.duration) return
-
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const newProgress = Math.max(0, Math.min(1, clickX / rect.width))
-    audio.currentTime = newProgress * audio.duration
+    snippetEngine.seek(newProgress * 35)
     setProgress(newProgress * 100)
   }
 
@@ -236,8 +150,6 @@ export const MusicSection = () => {
     touchStartXRef.current = null
   }
 
-  const activeRelease = RELEASES[activeIndex]
-
   return (
     <section
       ref={sectionRef}
@@ -246,14 +158,6 @@ export const MusicSection = () => {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* ── Audio Element ── */}
-      <audio
-        ref={audioRef}
-        src="/audio/f1.mp3"
-        preload="metadata"
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={handleAudioEnded}
-      />
 
       {/* ── Seamless Top Shade Transition from Tour Section ── */}
       <div 
@@ -293,13 +197,13 @@ export const MusicSection = () => {
           }`}
           style={{
             background: "radial-gradient(circle at center, rgba(210, 225, 245, 0.28) 0%, rgba(120, 135, 158, 0.14) 38%, rgba(45, 52, 65, 0.06) 65%, transparent 80%)",
-            filter: "blur(90px)"
+            filter: "blur(35px)"
           }}
         />
 
         {/* ── Concentrated Platinum Highlight Glow (Clean spotlight focus) ── */}
         <div 
-          className="absolute top-[42%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] max-w-[440px] max-h-[440px] rounded-full pointer-events-none mix-blend-screen blur-[70px] opacity-65"
+          className="absolute top-[42%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] max-w-[440px] max-h-[440px] rounded-full pointer-events-none mix-blend-screen blur-[25px] opacity-65"
           style={{
             background: "radial-gradient(circle at center, rgba(255, 255, 255, 0.45) 0%, rgba(175, 190, 215, 0.2) 42%, transparent 75%)"
           }}
@@ -367,7 +271,7 @@ export const MusicSection = () => {
         {/* ── View All Releases CTA Button (Sleek, smaller pill matching Home Page CTA look) ── */}
         <div className="mt-2.5 md:mt-3">
           <Link
-            href="/music"
+            href="/more-music"
             className="music-view-all-frame group"
           >
             {/* Liquid glass animated border */}
@@ -425,9 +329,9 @@ export const MusicSection = () => {
 
             if (!isVisible) return null
 
-            // 3D positioning
-            const isMobile = typeof window !== "undefined" && window.innerWidth < 640
-            const isTablet = typeof window !== "undefined" && window.innerWidth < 1024
+            // 3D positioning (uses synced state so SSR & initial hydration always match)
+            const isMobile = viewportWidth < 640
+            const isTablet = viewportWidth < 1024
             const spacing = isMobile ? 160 : isTablet ? 250 : 330
 
             const translateX = diff * spacing
@@ -637,42 +541,50 @@ export const MusicSection = () => {
             <span className="font-sans text-[9px] font-bold text-white/40 tracking-widest uppercase mr-1">
               LISTEN:
             </span>
-            <a
-              href={activeRelease.links.spotify}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Listen on Spotify"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#1DB954] hover:text-white text-[#1DB954] flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_#1DB954]"
-            >
-              <FaSpotify size={15} />
-            </a>
-            <a
-              href={activeRelease.links.apple}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Listen on Apple Music"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-white hover:text-black text-white flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_rgba(255,255,255,0.7)]"
-            >
-              <FaApple size={15} />
-            </a>
-            <a
-              href={activeRelease.links.youtube}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Listen on YouTube"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#FF0000] hover:text-white text-[#FF0000] flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_#FF0000]"
-            >
-              <FaYoutube size={15} />
-            </a>
-            <a
-              href={activeRelease.links.soundcloud}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Listen on SoundCloud"
-              className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#FF5500] hover:text-white text-[#FF5500] flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_#FF5500]"
-            >
-              <FaSoundcloud size={15} />
-            </a>
+            {activeRelease.links.spotify && activeRelease.links.spotify !== "#" && (
+              <a
+                href={activeRelease.links.spotify}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Listen on Spotify"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#1DB954] hover:text-white text-[#1DB954] flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_#1DB954]"
+              >
+                <FaSpotify size={15} />
+              </a>
+            )}
+            {activeRelease.links.apple && activeRelease.links.apple !== "#" && (
+              <a
+                href={activeRelease.links.apple}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Listen on Apple Music"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white hover:text-black text-white flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_rgba(255,255,255,0.7)]"
+              >
+                <FaApple size={15} />
+              </a>
+            )}
+            {activeRelease.links.youtube && activeRelease.links.youtube !== "#" && (
+              <a
+                href={activeRelease.links.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Listen on YouTube"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#FF0000] hover:text-white text-[#FF0000] flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_#FF0000]"
+              >
+                <FaYoutube size={15} />
+              </a>
+            )}
+            {activeRelease.links.soundcloud && activeRelease.links.soundcloud !== "#" && (
+              <a
+                href={activeRelease.links.soundcloud}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Listen on SoundCloud"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-[#FF5500] hover:text-white text-[#FF5500] flex items-center justify-center transition-all hover:scale-115 hover:shadow-[0_0_15px_#FF5500]"
+              >
+                <FaSoundcloud size={15} />
+              </a>
+            )}
           </div>
         </div>
 
@@ -738,6 +650,47 @@ export const MusicSection = () => {
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-[0_0_12px_#ffffff] opacity-0 group-hover/scrub:opacity-100 transition-opacity" />
             </div>
           </div>
+
+          {/* Snippet Stream Conversion Banner */}
+          {(isPlaying || snippetEnded) && (
+            <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 rounded-full border border-[#d8b4fe]/30 bg-[#1a0d2a]/60 px-4 py-1.5 backdrop-blur-xl shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+              <span className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[#e9d5ff]">
+                {snippetEnded ? "Snippet Ended — Stream Full Track:" : "Playing 35s Teaser — Full Track On:"}
+              </span>
+              <div className="flex items-center gap-2">
+                {activeRelease.links.spotify && activeRelease.links.spotify !== "#" && (
+                  <a
+                    href={activeRelease.links.spotify}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/20 border border-[#1DB954]/40 px-2.5 py-0.5 text-[10px] font-bold text-[#4ade80] hover:bg-[#1DB954] hover:text-black transition-all"
+                  >
+                    <FaSpotify size={11} /> Spotify
+                  </a>
+                )}
+                {activeRelease.links.apple && activeRelease.links.apple !== "#" && (
+                  <a
+                    href={activeRelease.links.apple}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/25 px-2.5 py-0.5 text-[10px] font-bold text-white hover:bg-white hover:text-black transition-all"
+                  >
+                    <FaApple size={11} /> Apple Music
+                  </a>
+                )}
+                {activeRelease.links.youtube && activeRelease.links.youtube !== "#" && (
+                  <a
+                    href={activeRelease.links.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full bg-[#FF0000]/20 border border-[#FF0000]/40 px-2.5 py-0.5 text-[10px] font-bold text-[#f87171] hover:bg-[#FF0000] hover:text-white transition-all"
+                  >
+                    <FaYoutube size={11} /> YouTube
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Pagination Dots ── */}
@@ -751,7 +704,7 @@ export const MusicSection = () => {
               }}
               aria-label={`Jump to track ${idx + 1}`}
               className={`transition-all duration-300 rounded-full cursor-pointer ${
-                idx === activeIndex 
+                idx === safeActiveIndex 
                   ? "w-7 h-1.5 bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)]" 
                   : "w-1.5 h-1.5 bg-white/20 hover:bg-white/50"
               }`}
@@ -760,14 +713,15 @@ export const MusicSection = () => {
         </div>
       </div>
 
-      {/* ── Footer Button: More Music ── */}
-      <div className="relative z-20 text-center px-6 mt-4 md:mt-6">
-        <Link href="/more-music">
-          <button className="px-8 py-3 rounded-full border border-white/20 bg-white/5 text-white font-sans text-xs font-black tracking-widest uppercase hover:bg-white hover:text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer">
-            More Music & Discography
-          </button>
-        </Link>
-      </div>
+
+
+      {/* ── Seamless Bottom Shade Transition into Gallery ── */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-28 sm:h-36 md:h-48 pointer-events-none z-10"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, rgba(7, 8, 10, 0.5) 40%, #07080a 100%)"
+        }}
+      />
     </section>
   )
 }
