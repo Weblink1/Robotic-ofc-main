@@ -9,7 +9,7 @@ import {
   FaEnvelope,
   FaCalendarAlt,
 } from "react-icons/fa"
-import { useSiteData, type BookingInquiryItem } from "@/app/lib/site-data"
+import { submitBookingInquiry, type BookingInquiryItem } from "@/app/lib/site-data"
 
 type EventType = "festival" | "club-headline" | "private" | "corporate"
 
@@ -118,11 +118,11 @@ export function BookingFormCornerAccents() {
 }
 
 export function BookingForm({ onSuccess, onClose, isModal = false }: BookingFormProps) {
-  const { updateSiteData } = useSiteData()
   const [form, setForm] = useState<BookingFormState>(INITIAL_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [confirmationId, setConfirmationId] = useState("")
+  const [submitError, setSubmitError] = useState("")
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -168,21 +168,20 @@ export function BookingForm({ onSuccess, onClose, isModal = false }: BookingForm
       message: form.notes,
     }
 
-    try {
-      await updateSiteData((prev) => ({
-        ...prev,
-        inquiries: [newInquiry, ...prev.inquiries],
-      }))
-    } catch (err) {
-      console.error("Failed to save booking inquiry:", err)
-    }
+    setSubmitError("")
 
-    setTimeout(() => {
-      setConfirmationId(refId)
+    try {
+      const savedRef = await submitBookingInquiry(newInquiry)
+      setConfirmationId(savedRef)
       setIsSubmitting(false)
       setIsSubmitted(true)
-      if (onSuccess) onSuccess(refId)
-    }, 500)
+      if (onSuccess) onSuccess(savedRef)
+    } catch (err) {
+      setIsSubmitting(false)
+      setSubmitError(
+        err instanceof Error ? err.message : "Could not send inquiry. Please try again."
+      )
+    }
   }
 
   const handleReset = () => {
@@ -467,6 +466,10 @@ export function BookingForm({ onSuccess, onClose, isModal = false }: BookingForm
                   Promoter will cover return flights, 4/5★ hotel hospitality &amp; technical Pioneer CDJ-3000 rider.
                 </span>
               </label>
+
+              {submitError && (
+                <p className="text-center text-xs font-medium text-red-400">{submitError}</p>
+              )}
 
               {/* ── Submit Action Button ── */}
               <div className="pt-4 flex justify-center">

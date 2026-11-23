@@ -35,6 +35,7 @@ import {
   type ShowStatus,
 } from "@/app/lib/site-data"
 import { snippetEngine, formatSnippetTime } from "@/app/lib/audio-snippet"
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/client"
 
 const COUNTRY_PRESETS = [
   { label: "Botswana", code: "bw" },
@@ -58,13 +59,17 @@ const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
 export default function AdminDashboardPage() {
-  const { data, updateSiteData } = useSiteData()
+  const { data, updateSiteData, refreshSiteData } = useSiteData()
 
-  // Authentication state
+  // Supabase Authentication state
+  const [authChecking, setAuthChecking] = useState(true)
   const [isAuthed, setIsAuthed] = useState(false)
-  const [passcode, setPasscode] = useState("")
-  const [showPasscode, setShowPasscode] = useState(false)
+  const [loginEmail, setLoginEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [authSubmitting, setAuthSubmitting] = useState(false)
   const [authError, setAuthError] = useState("")
+  const [authNotice, setAuthNotice] = useState("")
 
   // Active dashboard tab
   const [activeTab, setActiveTab] = useState<"tour" | "music" | "bookings">("tour")
@@ -119,13 +124,45 @@ export default function AdminDashboardPage() {
   const [snippetTime, setSnippetTime] = useState("0:00")
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedAuth = window.sessionStorage.getItem("robotic_admin_auth")
-      if (savedAuth === "true") {
-        setIsAuthed(true)
+    const supabase = createSupabaseBrowserClient()
+    let active = true
+
+    const syncAuth = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!active) return
+        const isAdmin = user?.app_metadata?.role === "admin"
+        setIsAuthed(Boolean(isAdmin))
+        if (isAdmin) {
+          refreshSiteData()
+        }
+      } catch {
+        if (active) setIsAuthed(false)
+      } finally {
+        if (active) setAuthChecking(false)
       }
     }
-  }, [])
+
+    syncAuth()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return
+      const isAdmin = session?.user?.app_metadata?.role === "admin"
+      setIsAuthed(Boolean(isAdmin))
+      if (isAdmin) {
+        refreshSiteData()
+      }
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [refreshSiteData])
 
   useEffect(() => {
     const unsub = snippetEngine.subscribe((st) => {
@@ -147,26 +184,84 @@ export default function AdminDashboardPage() {
     }, 3500)
   }
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    const clean = passcode.trim().toLowerCase()
-    if (clean === "robotic2026" || clean === "robotic" || clean === "admin2026") {
-      setIsAuthed(true)
-      setAuthError("")
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("robotic_admin_auth", "true")
-      }
-    } else {
-      setAuthError("Incorrect passcode. Please try again.")
+  const persistStudioChange = async (
+    updater: Parameters<typeof updateSiteData>[0],
+    successMsg: string
+  ) => {
+    try {
+      await updateSiteData(updater)
+      showToastMsg(successMsg)
+      return true
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not save studio changes."
+      showToastMsg(msg)
+      return false
     }
   }
 
-  const handleLogout = () => {
-    setIsAuthed(false)
-    setPasscode("")
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem("robotic_admin_auth")
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError("")
+    setAuthNotice("")
+    setAuthSubmitting(true)
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password,
+      })
+
+      if (error || !authData.user) {
+        setAuthError(error?.message || "Invalid email or password.")
+        return
+      }
+
+      if (authData.user.app_metadata?.role !== "admin") {
+        await supabase.auth.signOut()
+        setAuthError("This account does not have studio admin access.")
+        return
+      }
+
+      setIsAuthed(true)
+      setPassword("")
+      await refreshSiteData()
+    } catch {
+      setAuthError("Sign in failed. Please try again.")
+    } finally {
+      setAuthSubmitting(false)
     }
+  }
+
+  const handlePasswordReset = async () => {
+    setAuthError("")
+    setAuthNotice("")
+    const cleanEmail = loginEmail.trim()
+    if (!cleanEmail) {
+      setAuthError("Enter your admin email first to receive a password reset link.")
+      return
+    }
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/admin`,
+      })
+      if (error) {
+        setAuthError(error.message)
+        return
+      }
+      setAuthNotice("Password reset link sent if that email is registered.")
+    } catch {
+      setAuthError("Could not send password reset email.")
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const supabase = createSupabaseBrowserClient()
+      await supabase.auth.signOut()
+    } catch {}
+    setIsAuthed(false)
+    setPassword("")
   }
 
   // Helper to upload file to /api/upload
@@ -260,32 +355,37 @@ export default function AdminDashboardPage() {
       flyerUrl: tourForm.flyerUrl?.trim() || undefined,
     }
 
-    await updateSiteData((prev) => ({
-      ...prev,
-      tourDates: editingTour
-        ? prev.tourDates.map((t) => (t.id === editingTour.id ? itemToSave : t))
-        : [itemToSave, ...prev.tourDates],
-    }))
-
-    setShowTourModal(false)
-    showToastMsg(editingTour ? "Tour date updated across website!" : "New tour date added to website!")
+    const saved = await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        tourDates: editingTour
+          ? prev.tourDates.map((t) => (t.id === editingTour.id ? itemToSave : t))
+          : [itemToSave, ...prev.tourDates],
+      }),
+      editingTour ? "Tour date updated across website!" : "New tour date added to website!"
+    )
+    if (saved) setShowTourModal(false)
   }
 
   const handleQuickTourStatus = async (id: number, status: ShowStatus) => {
-    await updateSiteData((prev) => ({
-      ...prev,
-      tourDates: prev.tourDates.map((t) => (t.id === id ? { ...t, status } : t)),
-    }))
-    showToastMsg(`Show status updated to ${status.toUpperCase()}`)
+    await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        tourDates: prev.tourDates.map((t) => (t.id === id ? { ...t, status } : t)),
+      }),
+      `Show status updated to ${status.toUpperCase()}`
+    )
   }
 
   const handleDeleteTour = async (id: number) => {
-    await updateSiteData((prev) => ({
-      ...prev,
-      tourDates: prev.tourDates.filter((t) => t.id !== id),
-    }))
-    setShowTourModal(false)
-    showToastMsg("Tour date removed.")
+    const saved = await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        tourDates: prev.tourDates.filter((t) => t.id !== id),
+      }),
+      "Tour date removed."
+    )
+    if (saved) setShowTourModal(false)
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -342,34 +442,39 @@ export default function AdminDashboardPage() {
       subtitle: musicForm.subtitle.trim().toUpperCase(),
     }
 
-    await updateSiteData((prev) => ({
-      ...prev,
-      musicReleases: editingMusic
-        ? prev.musicReleases.map((m) => (m.id === editingMusic.id ? itemToSave : m))
-        : [itemToSave, ...prev.musicReleases],
-    }))
-
-    setShowMusicModal(false)
-    showToastMsg(editingMusic ? "Music release & snippet updated!" : "New music release published!")
+    const saved = await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        musicReleases: editingMusic
+          ? prev.musicReleases.map((m) => (m.id === editingMusic.id ? itemToSave : m))
+          : [itemToSave, ...prev.musicReleases],
+      }),
+      editingMusic ? "Music release & snippet updated!" : "New music release published!"
+    )
+    if (saved) setShowMusicModal(false)
   }
 
   const handleDeleteMusic = async (id: number) => {
-    await updateSiteData((prev) => ({
-      ...prev,
-      musicReleases: prev.musicReleases.filter((m) => m.id !== id),
-    }))
-    setShowMusicModal(false)
-    showToastMsg("Music release removed.")
+    const saved = await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        musicReleases: prev.musicReleases.filter((m) => m.id !== id),
+      }),
+      "Music release removed."
+    )
+    if (saved) setShowMusicModal(false)
   }
 
   const handleToggleFeaturedMusic = async (id: number) => {
-    await updateSiteData((prev) => ({
-      ...prev,
-      musicReleases: prev.musicReleases.map((m) =>
-        m.id === id ? { ...m, featured: m.featured === false ? true : false } : m
-      ),
-    }))
-    showToastMsg("Homepage featured status updated!")
+    await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        musicReleases: prev.musicReleases.map((m) =>
+          m.id === id ? { ...m, featured: m.featured === false ? true : false } : m
+        ),
+      }),
+      "Homepage featured status updated!"
+    )
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -379,11 +484,13 @@ export default function AdminDashboardPage() {
     ref: string,
     status: "new" | "in-review" | "confirmed" | "archived"
   ) => {
-    await updateSiteData((prev) => ({
-      ...prev,
-      inquiries: prev.inquiries.map((inq) => (inq.ref === ref ? { ...inq, status } : inq)),
-    }))
-    showToastMsg(`Booking ${ref} marked as ${status.toUpperCase()}`)
+    await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        inquiries: prev.inquiries.map((inq) => (inq.ref === ref ? { ...inq, status } : inq)),
+      }),
+      `Booking ${ref} marked as ${status.toUpperCase()}`
+    )
   }
 
   const handleConvertBookingToTour = (inq: BookingInquiryItem) => {
@@ -419,12 +526,14 @@ export default function AdminDashboardPage() {
   }
 
   const handleResetDefaults = async () => {
-    await updateSiteData((prev) => ({
-      ...prev,
-      tourDates: DEFAULT_TOUR_DATES,
-      musicReleases: DEFAULT_MUSIC_RELEASES,
-    }))
-    showToastMsg("Restored default Tour Dates & Music Releases.")
+    await persistStudioChange(
+      (prev) => ({
+        ...prev,
+        tourDates: DEFAULT_TOUR_DATES,
+        musicReleases: DEFAULT_MUSIC_RELEASES,
+      }),
+      "Restored default Tour Dates & Music Releases."
+    )
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -630,12 +739,23 @@ export default function AdminDashboardPage() {
   /* ═══════════════════════════════════════════════════════════════════════════
      LOGIN SCREEN
      ═══════════════════════════════════════════════════════════════════════════ */
+  if (authChecking) {
+    return (
+      <main className="studio-roboto-ui relative min-h-screen w-full bg-[#06070a] text-white flex items-center justify-center px-4">
+        <style>{studioStyles}</style>
+        <p className="text-xs font-mono uppercase tracking-[0.22em] text-zinc-400">
+          Verifying session...
+        </p>
+      </main>
+    )
+  }
+
   if (!isAuthed) {
     return (
       <main className="studio-roboto-ui relative min-h-screen w-full bg-[#06070a] text-white flex items-center justify-center px-4 sm:px-6 py-12">
         <style>{studioStyles}</style>
 
-        <div className="w-full max-w-[390px]">
+        <div className="w-full max-w-[400px]">
           <div className="mb-5 flex items-center justify-between">
             <Link
               href="/"
@@ -658,49 +778,85 @@ export default function AdminDashboardPage() {
               Admin Sign In
             </h1>
             <p className="mt-1.5 text-sm text-zinc-400 leading-relaxed">
-              Manage tour dates, music releases, and incoming booking inquiries.
+              Sign in with your studio Supabase account to manage tours, music releases, and bookings.
             </p>
 
-            <form onSubmit={handleLogin} className="mt-6 space-y-5">
+            <form onSubmit={handleLogin} className="mt-6 space-y-4">
               <div>
                 <label
-                  htmlFor="admin-passcode"
+                  htmlFor="admin-email"
                   className="block text-xs font-medium text-zinc-300 mb-2"
                 >
-                  Studio Passcode
+                  Admin Email
+                </label>
+                <input
+                  id="admin-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => {
+                    setLoginEmail(e.target.value)
+                    if (authError) setAuthError("")
+                    if (authNotice) setAuthNotice("")
+                  }}
+                  placeholder="roboticbookings@gmail.com"
+                  className="w-full h-10 rounded-lg border border-white/15 bg-[#12141b] px-3.5 text-sm text-white placeholder:text-zinc-500 focus:border-[#d8b4fe]/75 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="admin-password"
+                  className="block text-xs font-medium text-zinc-300 mb-2"
+                >
+                  Password
                 </label>
                 <div className="relative">
                   <input
-                    id="admin-passcode"
-                    type={showPasscode ? "text" : "password"}
+                    id="admin-password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     required
-                    value={passcode}
+                    value={password}
                     onChange={(e) => {
-                      setPasscode(e.target.value)
+                      setPassword(e.target.value)
                       if (authError) setAuthError("")
                     }}
-                    placeholder="Enter passcode"
+                    placeholder="Enter password"
                     className="w-full h-10 rounded-lg border border-white/15 bg-[#12141b] px-3.5 pr-14 text-sm text-white placeholder:text-zinc-500 focus:border-[#d8b4fe]/75 focus:outline-none transition-colors"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPasscode((prev) => !prev)}
+                    onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-1 text-[11px] font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer"
                   >
-                    {showPasscode ? "Hide" : "Show"}
+                    {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
-                {authError && (
-                  <p className="mt-2 text-xs font-medium text-red-400">{authError}</p>
-                )}
               </div>
 
-              <div className="pt-1 flex items-center justify-end">
+              {authError && (
+                <p className="text-xs font-medium text-red-400">{authError}</p>
+              )}
+              {authNotice && (
+                <p className="text-xs font-medium text-emerald-400">{authNotice}</p>
+              )}
+
+              <div className="pt-2 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  className="text-xs font-medium text-zinc-400 hover:text-[#d8b4fe] transition-colors cursor-pointer"
+                >
+                  Forgot password?
+                </button>
                 <button
                   type="submit"
-                  className="h-10 px-6 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-[0.14em] hover:bg-zinc-200 active:scale-[0.98] transition-all cursor-pointer"
+                  disabled={authSubmitting}
+                  className="h-10 px-6 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-[0.14em] hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-50 transition-all cursor-pointer"
                 >
-                  Sign In
+                  {authSubmitting ? "Signing In..." : "Sign In"}
                 </button>
               </div>
             </form>

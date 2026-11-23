@@ -437,73 +437,101 @@ export function loadLocalSiteData(): SiteDataStore {
   }
 }
 
-export async function saveSiteData(nextData: SiteDataStore): Promise<void> {
+export async function saveSiteData(nextData: SiteDataStore): Promise<SiteDataStore> {
+  const res = await fetch("/api/site-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nextData),
+  })
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; data?: SiteDataStore } | null
+  if (!res.ok || !json?.ok) {
+    throw new Error(json?.error || "Failed to save studio changes.")
+  }
+
+  const persisted = json.data || nextData
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData))
-      window.localStorage.setItem("robotic_inquiries", JSON.stringify(nextData.inquiries))
-      window.dispatchEvent(new CustomEvent(SYNC_EVENT, { detail: nextData }))
-    } catch (e) {
-      console.warn("LocalStorage quota warning, syncing to server API:", e)
-    }
+      const publicCache: SiteDataStore = {
+        tourDates: persisted.tourDates,
+        musicReleases: persisted.musicReleases,
+        inquiries: [],
+      }
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(publicCache))
+      window.dispatchEvent(new CustomEvent(SYNC_EVENT, { detail: persisted }))
+    } catch {}
   }
-  try {
-    await fetch("/api/site-data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(nextData),
-    })
-  } catch {
-    // Offline fallback already handled via localStorage
+  return persisted
+}
+
+export async function submitBookingInquiry(inquiry: BookingInquiryItem): Promise<string> {
+  const res = await fetch("/api/bookings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inquiry),
+  })
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; ref?: string; error?: string } | null
+  if (!res.ok || !json?.ok) {
+    throw new Error(json?.error || "Unable to submit booking request. Please try again.")
   }
+  return json.ref || inquiry.ref
 }
 
 export function useSiteData() {
   const [data, setData] = useState<SiteDataStore>(getInitialSiteData)
   const [loaded, setLoaded] = useState(false)
 
+  const refreshSiteData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/site-data", { cache: "no-store" })
+      if (!res.ok) return
+      const serverData = (await res.json()) as Partial<SiteDataStore> | null
+      if (!serverData) return
+
+      setData((prev) => {
+        const merged: SiteDataStore = {
+          tourDates: Array.isArray(serverData.tourDates) ? serverData.tourDates : prev.tourDates,
+          musicReleases: Array.isArray(serverData.musicReleases)
+            ? serverData.musicReleases
+            : prev.musicReleases,
+          inquiries: Array.isArray(serverData.inquiries) ? serverData.inquiries : [],
+        }
+        try {
+          window.localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              tourDates: merged.tourDates,
+              musicReleases: merged.musicReleases,
+              inquiries: [],
+            })
+          )
+        } catch {}
+        return merged
+      })
+    } catch {
+      // Retain current state on transient network errors
+    } finally {
+      setLoaded(true)
+    }
+  }, [])
+
   useEffect(() => {
     let mounted = true
     const local = loadLocalSiteData()
-    setData(local)
+    setData({
+      tourDates: local.tourDates,
+      musicReleases: local.musicReleases,
+      inquiries: [],
+    })
 
-    fetch("/api/site-data", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((serverData: Partial<SiteDataStore> | null) => {
-        if (!mounted || !serverData) {
-          if (mounted) setLoaded(true)
-          return
-        }
-        const merged: SiteDataStore = {
-          tourDates:
-            Array.isArray(serverData.tourDates) && serverData.tourDates.length > 0
-              ? serverData.tourDates
-              : local.tourDates,
-          musicReleases:
-            Array.isArray(serverData.musicReleases) && serverData.musicReleases.length > 0
-              ? serverData.musicReleases
-              : local.musicReleases,
-          inquiries:
-            Array.isArray(serverData.inquiries) && serverData.inquiries.length > 0
-              ? serverData.inquiries
-              : local.inquiries,
-        }
-        setData(merged)
-        try {
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-        } catch {}
-        setLoaded(true)
-      })
-      .catch(() => {
-        if (mounted) setLoaded(true)
-      })
+    refreshSiteData()
 
     const onSync = (e: Event) => {
+      if (!mounted) return
       const custom = e as CustomEvent<SiteDataStore>
       if (custom.detail) {
         setData(custom.detail)
       } else {
-        setData(loadLocalSiteData())
+        refreshSiteData()
       }
     }
 
@@ -514,22 +542,22 @@ export function useSiteData() {
       window.removeEventListener(SYNC_EVENT, onSync)
       window.removeEventListener("storage", onSync)
     }
-  }, [])
+  }, [refreshSiteData])
 
   const updateSiteData = useCallback(
     async (updater: (prev: SiteDataStore) => SiteDataStore) => {
-      const current = loadLocalSiteData()
-      const updated = updater(current)
-      setData(updated)
-      await saveSiteData(updated)
-      return updated
+      const updated = updater(data)
+      const persisted = await saveSiteData(updated)
+      setData(persisted)
+      return persisted
     },
-    []
+    [data]
   )
 
   return {
     data,
     loaded,
     updateSiteData,
+    refreshSiteData,
   }
 }

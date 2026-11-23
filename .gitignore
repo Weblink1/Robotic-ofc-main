@@ -43,3 +43,12 @@ next-env.d.ts
 # ide / agent
 .agent
 
+# temporary debug frames, raw video backups & verification screenshots
+scripts/*.png
+public/assets/robotic/gallery/detect-*
+public/assets/robotic/gallery/endframe-*
+public/assets/robotic/gallery/frame-*
+public/assets/robotic/gallery/test-im*
+public/assets/robotic/gallery/*-orig.mp4
+
+
