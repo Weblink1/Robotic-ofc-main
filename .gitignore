@@ -52,3 +52,6 @@ public/assets/robotic/gallery/test-im*
 public/assets/robotic/gallery/*-orig.mp4
 
 
+
+# legacy local CMS file (site now uses Supabase)
+/data/cms-store.json
