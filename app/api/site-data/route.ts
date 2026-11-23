@@ -174,8 +174,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, data: updated })
   } catch (error) {
+    console.error("site-data save failed:", (error as Error).message)
     return NextResponse.json(
-      { ok: false, error: (error as Error).message },
+      { ok: false, error: "Could not save changes. Check the values and try again." },
       { status: 400 }
     )
   }

@@ -800,8 +800,7 @@ export default function AdminDashboardPage() {
                     if (authError) setAuthError("")
                     if (authNotice) setAuthNotice("")
                   }}
-                  placeholder="roboticbookings@gmail.com"
-                  className="w-full h-10 rounded-lg border border-white/15 bg-[#12141b] px-3.5 text-sm text-white placeholder:text-zinc-500 focus:border-[#d8b4fe]/75 focus:outline-none transition-colors"
+                  className="w-full h-10 rounded-lg border border-white/15 bg-[#12141b] px-3.5 text-sm text-white focus:border-[#d8b4fe]/75 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -823,8 +822,7 @@ export default function AdminDashboardPage() {
                       setPassword(e.target.value)
                       if (authError) setAuthError("")
                     }}
-                    placeholder="Enter password"
-                    className="w-full h-10 rounded-lg border border-white/15 bg-[#12141b] px-3.5 pr-14 text-sm text-white placeholder:text-zinc-500 focus:border-[#d8b4fe]/75 focus:outline-none transition-colors"
+                    className="w-full h-10 rounded-lg border border-white/15 bg-[#12141b] px-3.5 pr-14 text-sm text-white focus:border-[#d8b4fe]/75 focus:outline-none transition-colors"
                   />
                   <button
                     type="button"

@@ -34,6 +34,27 @@ export async function createSupabaseServerClient() {
   })
 }
 
+
+// Only allow safe URLs: http(s) links or site-relative paths. Blocks javascript:, data:, etc.
+export function safeUrl(value: unknown, maxLen = 500): string {
+  if (typeof value !== "string") return ""
+  const v = value.trim().slice(0, maxLen)
+  if (!v) return ""
+  if (v.startsWith("/") && !v.startsWith("//")) return v
+  try {
+    const u = new URL(v)
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : ""
+  } catch {
+    return ""
+  }
+}
+
+export function safeText(value: unknown, maxLen: number): string {
+  return typeof value === "string" ? value.slice(0, maxLen) : ""
+}
+
+const SHOW_STATUSES: ShowStatus[] = ["upcoming", "sold-out", "cancelled"]
+
 export async function getVerifiedAdminContext() {
   const supabase = await createSupabaseServerClient()
   if (!supabase) {
@@ -120,21 +141,23 @@ export function mapTourFromDb(row: DbTourRow): TourDateItem {
 }
 
 export function mapTourToDb(item: TourDateItem, sortOrder: number): DbTourRow {
+  const id = Number(item.id)
+  if (!Number.isSafeInteger(id)) throw new Error("Invalid tour date id")
   return {
-    id: item.id,
-    date: item.date,
-    day: item.day,
-    month: item.month,
-    year: item.year,
-    city: item.city,
-    country: item.country,
-    country_code: item.countryCode,
-    venue: item.venue,
-    festival: item.festival,
-    status: item.status,
-    ticket_url: item.ticketUrl || "",
-    lineup: item.lineup || "",
-    flyer_url: item.flyerUrl || null,
+    id,
+    date: safeText(item.date, 10),
+    day: safeText(item.day, 10),
+    month: safeText(item.month, 10),
+    year: safeText(item.year, 6),
+    city: safeText(item.city, 120),
+    country: safeText(item.country, 120),
+    country_code: safeText(item.countryCode, 6).toLowerCase(),
+    venue: safeText(item.venue, 180),
+    festival: safeText(item.festival, 180),
+    status: SHOW_STATUSES.includes(item.status) ? item.status : "upcoming",
+    ticket_url: safeUrl(item.ticketUrl),
+    lineup: safeText(item.lineup, 500),
+    flyer_url: safeUrl(item.flyerUrl) || null,
     sort_order: sortOrder,
   }
 }
@@ -160,17 +183,25 @@ export function mapMusicFromDb(row: DbMusicRow): MusicReleaseItem {
 }
 
 export function mapMusicToDb(item: MusicReleaseItem, sortOrder: number): DbMusicRow {
+  const id = Number(item.id)
+  if (!Number.isSafeInteger(id)) throw new Error("Invalid music release id")
+  const links = item.links || { spotify: "", apple: "", youtube: "", soundcloud: "" }
   return {
-    id: item.id,
-    title: item.title,
-    subtitle: item.subtitle || "",
-    artist: item.artist,
-    year: item.year,
-    badge: item.badge || "",
-    cover: item.cover,
+    id,
+    title: safeText(item.title, 160),
+    subtitle: safeText(item.subtitle, 200),
+    artist: safeText(item.artist, 160),
+    year: safeText(item.year, 6),
+    badge: safeText(item.badge, 60),
+    cover: safeUrl(item.cover),
     featured: item.featured !== false,
-    snippet_url: item.snippetUrl || null,
-    links: item.links,
+    snippet_url: safeUrl(item.snippetUrl) || null,
+    links: {
+      spotify: safeUrl(links.spotify),
+      apple: safeUrl(links.apple),
+      youtube: safeUrl(links.youtube),
+      soundcloud: safeUrl(links.soundcloud),
+    },
     sort_order: sortOrder,
   }
 }

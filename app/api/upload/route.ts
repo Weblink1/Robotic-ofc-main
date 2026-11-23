@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
     if (uploadErr) {
       return NextResponse.json(
-        { ok: false, error: uploadErr.message || "Storage upload failed" },
+        { ok: false, error: "Storage upload failed" },
         { status: 500 }
       )
     }
@@ -84,8 +84,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, url: publicUrl })
   } catch (err) {
+    console.error("upload failed:", (err as Error).message)
     return NextResponse.json(
-      { ok: false, error: (err as Error).message },
+      { ok: false, error: "Upload failed. Please try again." },
       { status: 500 }
     )
   }
